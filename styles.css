@@ -634,25 +634,61 @@ footer {
     gap: 1rem; /* 缩小导航链接间距 */
   }
 
-  /* 2. 标题横幅适配（保留你原有所有样式） */
-  .title-banner .banner-right-wrap {
-    height: 36px;
-    padding-right: 16px;
-  }
-  .title-banner .banner-left {
-    font-size: 12px;
-    padding: 0 10px;
-    height: 28px;
-    line-height: 28px;
-    left: 4px;
-    top: 4px;
-    bottom: 4px;
-  }
-  .title-banner .banner-right {
-    font-size: 12px;
-    padding-left: calc(70px + 4px + 10px); /* 适配手机端黑框宽度 */
-    line-height: 36px;
-  }
+ /* 2. 标题横幅适配（最终最终版：固定小尺寸+68%宽度+居中） */
+/* 标题横幅：68%宽度+居中+整体缩放（完整显示不换行） */
+.title-banner {
+  width: 68% !important;
+  margin: 0 auto 16px !important;
+  overflow: visible !important; /* 允许内容溢出容器（缩放后会缩回去） */
+  position: relative !important;
+}
+
+/* 核心：给整个横幅内容加整体缩放，所有元素同步缩小 */
+.title-banner .banner-right-wrap {
+  height: 36px !important; /* 保留原高度 */
+  width: 100% !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  /* 关键：整体缩放（0.7=缩小到70%，可微调0.65~0.75） */
+  transform: scale(0.7) !important;
+  /* 缩放原点左对齐，不偏移 */
+  transform-origin: left center !important;
+  /* 缩放后容器宽度自适应，不截断 */
+  width: auto !important;
+  min-width: 100% !important;
+}
+
+/* 恢复黑框原有样式（不单独缩放） */
+.title-banner .banner-left {
+  font-size: 12px !important;
+  padding: 0 10px !important;
+  height: 28px !important;
+  line-height: 28px !important;
+  left: 4px !important;
+  top: 4px !important;
+  bottom: 4px !important;
+  position: absolute !important;
+  white-space: nowrap !important;
+  z-index: 2 !important;
+}
+
+/* 右侧文字：仅强制不换行，靠父级整体缩放 */
+.title-banner .banner-right {
+  font-size: 12px !important; /* 恢复原字号，靠父级缩放缩小 */
+  line-height: 36px !important;
+  padding-left: calc(70px + 4px + 10px) !important; /* 恢复你原有的缩进 */
+  white-space: nowrap !important; /* 强制不换行 */
+  overflow: visible !important; /* 不隐藏内容 */
+  text-overflow: clip !important;
+  width: auto !important; /* 自适应宽度 */
+}
+
+/* 图标：恢复原尺寸，靠父级缩放同步缩小 */
+.title-banner svg, .title-banner i {
+  width: 18px !important;
+  height: 18px !important;
+  margin-right: 4px !important;
+}
 
   /* 3. Hero区域适配（保留你原有所有样式） */
   .hero {

@@ -10,6 +10,7 @@ CATEGORY_MAP = {
     "category": "服装品类",
     "basic": "基础图标",
     "logo": "LOGO",
+    "OMCemoji": "OMC表情",
 }
 
 # 2. 可选：图标名映射（英文文件名 → 中文图标名，按需补充）
@@ -72,5 +73,4 @@ if __name__ == "__main__":
 
     main()
 
-    main() 
 
