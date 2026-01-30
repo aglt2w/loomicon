@@ -11,13 +11,14 @@ def run_python_script(script_path):
             [sys.executable, script_path],
             check=True,
             capture_output=True,
-            text=True
+            text=True,
+            encoding='utf-8'  # 👉 新增：强制UTF-8编码解码输出
         )
-        print(f"[成功] JSON更新脚本执行完成，输出: {result.stdout}")
+        print(f"[成功] JSON更新脚本执行完成，输出: {result.stdout.strip() if result.stdout else '无输出'}")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"[警告] JSON更新脚本执行出错: {e.stderr}（继续执行推送流程）")
-        return False  # 改为返回False，不终止流程
+        print(f"[警告] JSON更新脚本执行出错: {e.stderr.strip() if e.stderr else '无错误信息'}（继续执行推送流程）")
+        return False
     except FileNotFoundError:
         print(f"[警告] 找不到指定的JSON脚本: {script_path}（继续执行推送流程）")
         return False
@@ -27,7 +28,7 @@ def git_commit_and_push(commit_msg=None):
     if not commit_msg:
         commit_msg = f"自动更新JSON文件 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     
-    # 【新增】推送前先拉取远程最新代码，避免冲突（仅加这一段）
+    # 拉取远程最新代码
     try:
         print("[开始] 拉取GitHub远程最新代码...")
         pull_result = subprocess.run(
@@ -35,12 +36,12 @@ def git_commit_and_push(commit_msg=None):
             check=True,
             capture_output=True,
             text=True,
-            cwd=os.getcwd()
+            cwd=os.getcwd(),
+            encoding='utf-8'  # 👉 新增：强制UTF-8编码
         )
-        print(f"[成功] 拉取远程代码完成: {pull_result.stdout}")
+        print(f"[成功] 拉取远程代码完成: {pull_result.stdout.strip() if pull_result.stdout else '无更新'}")
     except subprocess.CalledProcessError as e:
-        print(f"[失败] 拉取远程代码出错（可能无新内容）: {e.stderr}")
-        # 拉取失败不终止，继续尝试提交推送
+        print(f"[失败] 拉取远程代码出错（可能无新内容）: {e.stderr.strip() if e.stderr else '无错误信息'}")
     
     git_commands = [
         ["git", "add", "."],
@@ -56,11 +57,12 @@ def git_commit_and_push(commit_msg=None):
                 check=True,
                 capture_output=True,
                 text=True,
-                cwd=os.getcwd()
+                cwd=os.getcwd(),
+                encoding='utf-8'  # 👉 新增：所有Git命令都加UTF-8编码
             )
-            print(f"[成功] Git命令执行完成: {result.stdout}")
+            print(f"[成功] Git命令执行完成: {result.stdout.strip() if result.stdout else '无输出'}")
         except subprocess.CalledProcessError as e:
-            print(f"[失败] Git命令执行出错: {e.stderr}")
+            print(f"[失败] Git命令执行出错: {e.stderr.strip() if e.stderr else '无错误信息'}")
             return False
         except Exception as e:
             print(f"[失败] 未知错误: {str(e)}")
@@ -72,7 +74,7 @@ if __name__ == "__main__":
     CUSTOM_COMMIT_MSG = ""
 
     # 步骤1：运行JSON更新脚本（失败不终止）
-    run_python_script(JSON_UPDATE_SCRIPT_PATH)  # 去掉if判断，不终止流程
+    run_python_script(JSON_UPDATE_SCRIPT_PATH)
     
     # 步骤2：执行Git提交和推送
     if git_commit_and_push(CUSTOM_COMMIT_MSG):
