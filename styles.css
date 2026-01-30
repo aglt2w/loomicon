@@ -211,15 +211,16 @@ header {
 /* 搜索区域样式 */
 .search-section {
   max-width: 1560px;
-  margin: -2rem auto 4rem; /* 保留你原有向上偏移覆盖hero的视觉效果 */
+  margin: -2rem auto 4rem; /* 保留原有向上覆盖hero的视觉效果，不动 */
   padding: 0 160px;
-  position: sticky !important; /* 强制粘性定位，防止被覆盖 */
-  top: 0px !important; /* 核心：贴顶定位（想留间距改24px也可以，加!important就不跑偏） */
-  z-index: 999 !important; /* 大幅提高层级，避免被任何元素遮挡/干扰 */
+  position: sticky !important; /* 强制粘性定位，不被覆盖 */
+  top: 30px !important; /* 核心：固定后距顶部30px间距，按你的需求设置 */
+  z-index: 999 !important; /* 高层级防干扰 */
   width: 100%;
   box-sizing: border-box;
-  min-height: 72px; /* 兜底高度：和搜索框容器height一致，防止高度塌陷导致定位计算错误 */
-  background: transparent; /* 透明背景，保留原有视觉 */
+  min-height: 72px !important; /* 兜底高度，和搜索框容器height一致 */
+  background: transparent;
+  overflow: hidden !important; /* 关键：裁切偏移内容，解决上滑漏边问题 */
 }
 
 .search-container {
