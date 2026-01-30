@@ -874,3 +874,257 @@ footer {
 .nav-links a:hover {
   color: #F5B32C;
 }
+
+/* 密码验证按钮：和GitHub按钮样式/尺寸完全对齐 */
+.auth-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  color: inherit;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  margin-left: 8px;
+  transition: background-color 0.2s ease;
+}
+.auth-btn:hover {
+  background-color: #e1e6f0;
+}
+@media (prefers-color-scheme: dark) {
+  .auth-btn:hover {
+    background-color: #444;
+  }
+}
+
+/* 弹窗容器：加硬件加速基础 + 隐藏溢出（避免卡顿） */
+.auth-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 99999;
+  display: none;
+  box-sizing: border-box;
+  will-change: contents; /* 告诉浏览器提前准备动画，减少卡顿 */
+  overflow: hidden; /* 防止内容溢出导致渲染卡顿 */
+}
+
+/* 蒙版：精简过渡属性为opacity（只动透明度，不冗余计算） */
+.auth-modal-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1;
+  opacity: 0;
+  /* 优化1：只过渡opacity，删除all，减少浏览器计算 */
+  transition: opacity 0.3s ease-out; 
+  will-change: opacity; /* 硬件加速：透明度变化 */
+}
+
+/* 弹窗内容：加GPU硬件加速 + 精简过渡属性（仅动需要的样式） */
+.auth-modal-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  width: 100%;
+  max-width: 380px;
+  background: #fff !important;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 30px;
+  box-sizing: border-box;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  /* 初始动画状态：不变 */
+  opacity: 0;
+  transform: translate(-50%, -60%) scale(0.98);
+  /* 优化2：只过渡opacity+transform，删除all，精准动画 */
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+  will-change: opacity, transform; /* 核心：GPU硬件加速（关键！） */
+  transform-style: preserve-3d; /* 开启3D渲染，强制GPU加速 */
+  backface-visibility: hidden; /* 隐藏背面，减少渲染消耗 */
+}
+
+/* show类触发动画：不变 */
+.auth-modal.show .auth-modal-mask {
+  opacity: 0.5;
+}
+.auth-modal.show .auth-modal-content {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* 弹窗关闭按钮 */
+.auth-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.auth-close-btn:hover {
+  color: #F5B32C;
+}
+
+/* 弹窗标题 */
+.auth-title {
+  font-size: 18px;
+  color: #1a2b48;
+  margin: 0 0 16px 0;
+  text-align: center;
+  font-weight: 500;
+  font-family: 'Lexend', sans-serif;
+  letter-spacing: 1px;
+}
+
+/* 输入框：你要求的#f6f7fd + 彻底无边框 + 聚焦高光 */
+.auth-input {
+  width: 100%;
+  height: 44px;
+  border: none !important; /* 彻底无边框 */
+  border-radius: 8px;
+  padding: 0 16px;
+  box-sizing: border-box;
+  font-size: 16px;
+  color: #374151;
+  margin-bottom: 8px;
+  background: #f6f7fd !important; /* 固定背景色 */
+  outline: none;
+}
+.auth-input:focus {
+  box-shadow: 0 0 0 2px rgba(245, 179, 44, 0.15); /* 仅高光，无边框 */
+}
+.auth-input::placeholder {
+  color: #bcc1cc;
+}
+
+/* 密码错误提示 */
+.auth-error {
+  color: #dc3545;
+  font-size: 14px;
+  margin: 0 0 16px 0;
+  height: 16px;
+  line-height: 16px;
+  text-align: center;
+}
+
+/* 7天免密勾选 */
+.auth-remember {
+  display: flex;
+  align-items: center;
+  color: #64748b;
+  font-size: 14px;
+  margin-bottom: 16px;
+  cursor: pointer;
+}
+.auth-remember input {
+  margin-right: 8px;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #F5B32C;
+}
+
+/* 验证按钮：黄色主色，适配页面风格 */
+.auth-submit-btn {
+  width: 100%;
+  height: 44px;
+  background-color: #F5B32C;
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-family: 'Lexend', sans-serif;
+  letter-spacing: 1px;
+}
+.auth-submit-btn:hover {
+  background-color: #e0a21a;
+}
+
+/* ########## 核心：默认隐藏LOGO/OMC分类 + 授权后显示 ########## */
+.select-option[data-cat="LOGO"],
+.select-option[data-cat="OMC"],
+[data-cat="LOGO"],
+[data-cat="OMC"] {
+  display: none !important;
+}
+body.auth-ok .select-option[data-cat="LOGO"],
+body.auth-ok .select-option[data-cat="OMC"],
+body.auth-ok [data-cat="LOGO"],
+body.auth-ok [data-cat="OMC"] {
+  display: block !important;
+}
+
+/* 手机端适配：弹窗占满宽度，取消固定右下角，居中显示 */
+@media (max-width: 768px) {
+  .auth-btn {
+    margin-left: 4px;
+  }
+  .auth-modal-content {
+    position: relative;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    bottom: auto;
+    right: auto;
+    max-width: none;
+    margin: 0 20px;
+  }
+}
+
+/* 修复GitHub图标裁切 + 与锁按钮视觉统一（匹配你的实际HTML结构） */
+.github-btn {
+  /* 和锁按钮保持一致的36px宽高，确保横向对齐 */
+  width: 36px !important;
+  height: 36px !important;
+  /* 核心：弹性居中内部logo，彻底避免偏右 */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  /* 留内边距，让图标和容器不贴边，防止裁切 */
+  padding: 4px !important;
+  /* 强制显示图标所有部分，禁止裁切 */
+  overflow: visible !important;
+  /* 重置原有可能的布局样式，避免冲突 */
+  margin: 0 !important;
+  position: relative !important;
+}
+/* 重置logo容器样式，让它紧贴SVG，不占多余空间 */
+.github-btn .github-logo {
+  /* 重置块级样式，避免撑大/偏位 */
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  /* 重置边距，避免偏位 */
+  margin: 0 !important;
+  padding: 0 !important;
+}
+/* 确保SVG图标本身完整，不被压缩/裁切 */
+.github-btn .github-logo svg {
+  /* 保留你原有18px尺寸，和锁图标20px视觉协调 */
+  width: 18px !important;
+  height: 18px !important;
+  /* 防止图标被弹性容器压缩 */
+  flex-shrink: 0 !important;
+  /* 保留原有颜色继承，不变色 */
+  fill: currentColor !important;
+}

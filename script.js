@@ -1,3 +1,105 @@
+// 加这1行：函数提升声明，消除浏览器未定义警告
+function checkAuthStatus() {};
+
+// ########## 仅需修改这行：你的内部验证密码 ##########
+const AUTH_PASSWORD = "loomicon123"; 
+// ###################################################
+
+// 页面加载时先校验7天免密状态，有效则直接显示内部分类
+checkAuthStatus();
+
+// 获取所有密码验证相关元素
+const authBtn = document.querySelector('.auth-btn');
+const authModal = document.querySelector('.auth-modal');
+const authCloseBtn = document.querySelector('.auth-close-btn');
+const authInput = document.querySelector('.auth-input');
+const authError = document.querySelector('.auth-error');
+const authRemember = document.querySelector('.auth-remember input');
+const authSubmitBtn = document.querySelector('.auth-submit-btn');
+const authMask = document.querySelector('.auth-modal-mask');
+
+// 1. 打开密码弹窗：修复动画触发（先显示→延迟加show类）
+authBtn.addEventListener('click', () => {
+  authModal.style.display = 'block'; // 第一步：先显示弹窗，让元素渲染
+  // 新增：延迟10毫秒加show类，触发动画（浏览器完成渲染后执行）
+  setTimeout(() => {
+    authModal.classList.add('show');
+  }, 10);
+  authInput.focus();
+  authInput.value = '';
+  authError.textContent = '';
+});
+
+// 2. 关闭弹窗通用方法：修复反向动画（先删show类→动画结束后隐藏）
+function closeAuthModal() {
+  authModal.classList.remove('show'); // 第一步：删show类，执行反向动画
+  // 新增：延迟300毫秒（和CSS动画时长一致），动画结束后再隐藏弹窗
+  setTimeout(() => {
+    authModal.style.display = 'none';
+  }, 200);
+  authInput.value = '';
+  authError.textContent = '';
+  authRemember.checked = false;
+}
+
+// 点击关闭按钮/遮罩层/ESC键，关闭弹窗
+authCloseBtn.addEventListener('click', closeAuthModal);
+authMask.addEventListener('click', closeAuthModal);
+document.addEventListener('keydown', (e) => e.key === 'Escape' && closeAuthModal());
+
+// 回车/点击按钮，触发密码验证
+authInput.addEventListener('keydown', (e) => e.key === 'Enter' && submitAuth());
+authSubmitBtn.addEventListener('click', submitAuth);
+
+// 密码验证核心逻辑
+function submitAuth() {
+  const inputPwd = authInput.value.trim();
+  // 密码错误提示
+  if (inputPwd !== AUTH_PASSWORD) {
+    authError.textContent = '密码错误，请重新输入';
+    authInput.focus();
+    return;
+  }
+  // 密码正确：授权通过，显示内部分类
+  authSuccess();
+  closeAuthModal();
+}
+
+// 授权成功：给body加标识 + 存储7天免密状态（若勾选）
+function authSuccess() {
+  document.body.classList.add('auth-ok');
+  if (authRemember.checked) {
+    // 存储：授权状态 + 7天后的过期时间戳
+    const expireTime = new Date().getTime() + 7 * 24 * 60 * 60 * 1000;
+    localStorage.setItem('loomIconAuth', JSON.stringify({
+      isAuth: true,
+      expireTime: expireTime
+    }));
+  }
+}
+
+// 页面加载校验：判断免密状态是否有效
+function checkAuthStatus() {
+  const authCache = localStorage.getItem('loomIconAuth');
+  if (!authCache) return;
+
+  try {
+    const { isAuth, expireTime } = JSON.parse(authCache);
+    // 状态有效且未过期，自动授权
+    if (isAuth && new Date().getTime() < expireTime) {
+      document.body.classList.add('auth-ok');
+    } else {
+      // 过期则清除缓存
+      localStorage.removeItem('loomIconAuth');
+    }
+  } catch (e) {
+    // 缓存异常，清除缓存
+    localStorage.removeItem('loomIconAuth');
+  }
+}
+
+// 👇 以下保留你原有的script.js代码（图标渲染、搜索、分类切换等）
+// ... 你的原有JS代码 ...
 // 图标数据源
 let iconData = [];
 let allCategories = [];
@@ -102,6 +204,9 @@ function renderIcons(data) {
     
     const categoryWrapper = document.createElement('div');
     categoryWrapper.className = 'category-wrapper';
+    // ########## 新增这1行：给分类容器加data-cat标识，让CSS精准隐藏 ##########
+    categoryWrapper.dataset.cat = cat;
+    // #######################################################################
     categoryWrapper.appendChild(title);
     categoryWrapper.appendChild(grid);
     
@@ -154,7 +259,8 @@ function createIconCard(icon) {
   });
   
   return card;
-}
+  }
+
 
 // ========== 保留你原有copyIcon（提示样式完全不变） ==========
 function copyIcon(name, svg) {
