@@ -213,11 +213,13 @@ header {
   max-width: 1560px;
   margin: -2rem auto 4rem;
   padding: 0 160px;
-  position: sticky;
-  top: 24px;
-  z-index: 90;
+  position: sticky !important; /* 加!important：强制WebKit内核识别，防止被隐性覆盖 */
+  top: 24px !important;        /* 加!important：锁定24px间距，Mac不偏移 */
+  z-index: 999 !important;     /* 提高层级：适配WebKit的层级计算，防干扰（仅改这一个值） */
   width: 100%;
-  box-sizing: border-box; /* 新增：统一盒模型 */
+  box-sizing: border-box;
+  min-height: 72px !important; /* 新增：兜底高度=搜索框高度，解决WebKit高度计算偏差 */
+  transform: translateZ(0);    /* 新增：WebKit专属，触发硬件加速，修复sticky渲染偏移 */
 }
 
 .search-container {
