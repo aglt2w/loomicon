@@ -63,39 +63,52 @@
     <div class="header-right">
       <!-- 原有GitHub链接按钮（保留不动） -->
       <a href="https://github.com/aglt2w/loomicon" target="_blank" class="github-btn" title="前往GitHub仓库">
-        <!-- Logo容器（居中显示） -->
         <span class="github-logo">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
             <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
           </svg>
         </span>
       </a>
-
-      <!-- 密码验证锁形按钮：直接替换成这个，其余不变 -->
+      <!-- 密码验证锁形按钮（保留不动） -->
       <button class="auth-btn">
-  <!-- 加了style限制宽高20px + 居中，和原有图标尺寸一致 -->
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 20px; height: 20px; display: block; margin: auto;">
-    <path d="M19 10H20C20.5523 10 21 10.4477 21 11V21C21 21.5523 20.5523 22 20 22H4C3.44772 22 3 21.5523 3 21V11C3 10.4477 3.44772 10 4 10H5V9C5 5.13401 8.13401 2 12 2C15.866 2 19 5.13401 19 9V10ZM17 10V9C17 6.23858 14.7614 4 12 4C9.23858 4 7 6.23858 7 9V10H17ZM11 14V18H13V14H11Z"></path>
-  </svg>
-</button>
-    </div>
-  </div>
-
-  <!-- 新增：密码验证弹窗（默认隐藏，玻璃模糊风格和搜索框一致）【移出header-right，避免嵌套问题】 -->
-  <div class="auth-modal">
-    <div class="auth-modal-mask"></div>
-    <div class="auth-modal-content">
-      <button class="auth-close-btn">×</button>
-      <h3 class="auth-title">内部资源验证</h3>
-      <input type="password" class="auth-input" placeholder="请输入内部验证密码" autocomplete="off">
-      <p class="auth-error"></p>
-      <label class="auth-remember">
-        <input type="checkbox"> 7天内无需重复验证
-      </label>
-      <button class="auth-submit-btn">验证并进入</button>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19 10H20C20.5523 10 21 10.4477 21 11V21C21 21.5523 20.5523 22 20 22H4C3.44772 22 3 21.5523 3 21V11C3 10.4477 3.44772 10 4 10H5V9C5 5.13401 8.13401 2 12 2C15.866 2 19 5.13401 19 9V10ZM17 10V9C17 6.23858 14.7614 4 12 4C9.23858 4 7 6.23858 7 9V10H17ZM11 14V18H13V14H11Z"></path>
+        </svg>
+      </button>
     </div>
   </div>
 </header>
+<!-- 修复核心：弹窗移出header，和header同级，独立存在 + 闭合所有标签 + 删除重复的auth-modal-content -->
+<div class="auth-modal">
+  <div class="auth-modal-mask"></div>
+  <div class="auth-modal-content">
+    <!-- 标题+关闭按钮容器 -->
+    <div class="auth-header">
+      <h3 class="auth-title">内部资源验证</h3>
+      <button class="auth-close-btn">×</button>
+    </div>
+    <!-- 密码输入框（保留原有类名） -->
+    <input type="password" class="auth-input" placeholder="请输入内部验证密码" autocomplete="off">
+    <!-- 错误提示（保留原有类名） -->
+    <p class="auth-error"></p>
+    <!-- 7天内无需重复验证：改造为你指定的SVG复选框（核心修改） -->
+    <label class="auth-remember">
+      <!-- 原生checkbox：隐藏视觉，保留选中逻辑 -->
+      <input type="checkbox" class="remember-checkbox">
+      <!-- 未选中：你指定的黑色矩形SVG -->
+      <svg class="uncheck-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="rgba(0,0,0,1)">
+        <path d="M4 3H20C20.5523 3 21 3.44772 21 4V20C21 20.5523 20.5523 21 20 21H4C3.44772 21 3 20.5523 3 20V4C3 3.44772 3.44772 3 4 3ZM5 5V19H19V5H5Z"></path>
+      </svg>
+      <!-- 选中：你指定的黄色对钩SVG（fill和验证按钮黄色一致） -->
+      <svg class="check-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="rgba(245,179,44,1)">
+        <path d="M4 3H20C20.5523 3 21 3.44772 21 4V20C21 20.5523 20.5523 21 20 21H4C3.44772 21 3 20.5523 3 20V4C3 3.44772 3.44772 3 4 3ZM11.0026 16L18.0737 8.92893L16.6595 7.51472L11.0026 13.1716L8.17421 10.3431L6.75999 11.7574L11.0026 16Z"></path>
+      </svg>
+      7天内无需重复验证
+    </label>
+    <!-- 验证按钮（保留扩散动画类名） -->
+    <button class="auth-submit-btn">验证并进入</button>
+  </div>
+</div>
 
 <section class="hero">
   <!-- 新增：标题上方的横幅（无独立背景，和hero融为一体） -->

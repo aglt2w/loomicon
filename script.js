@@ -2,44 +2,50 @@
 function checkAuthStatus() {};
 
 // ########## 仅需修改这行：你的内部验证密码 ##########
-const AUTH_PASSWORD = "loomicon123"; 
+const AUTH_PASSWORD = "123456"; 
 // ###################################################
 
-// 页面加载时先校验7天免密状态，有效则直接显示内部分类
+// 页面加载时先校验7天免密状态，有效则直接显示内部分类（含OMC表情）
 checkAuthStatus();
 
 // 获取所有密码验证相关元素
+// 【修改1】复选框选择器更新为SVG改造后的.remember-checkbox（关键，否则获取不到）
 const authBtn = document.querySelector('.auth-btn');
 const authModal = document.querySelector('.auth-modal');
 const authCloseBtn = document.querySelector('.auth-close-btn');
 const authInput = document.querySelector('.auth-input');
 const authError = document.querySelector('.auth-error');
-const authRemember = document.querySelector('.auth-remember input');
+const authRemember = document.querySelector('.remember-checkbox'); // 核心修改：匹配SVG复选框的input
 const authSubmitBtn = document.querySelector('.auth-submit-btn');
 const authMask = document.querySelector('.auth-modal-mask');
 
-// 1. 打开密码弹窗：修复动画触发（先显示→延迟加show类）
+// 1. 打开密码弹窗：修复动画触发 + 【新增】同步本地存储的复选框状态（核心）
 authBtn.addEventListener('click', () => {
-  authModal.style.display = 'block'; // 第一步：先显示弹窗，让元素渲染
-  // 新增：延迟10毫秒加show类，触发动画（浏览器完成渲染后执行）
+  authModal.style.display = 'block';
   setTimeout(() => {
     authModal.classList.add('show');
   }, 10);
   authInput.focus();
   authInput.value = '';
   authError.textContent = '';
+  
+  // 【新增核心】打开弹窗时，读取本地存储，同步复选框选中状态（SVG黑矩形/黄对钩自动切换）
+  const authCache = localStorage.getItem('loomIconAuth');
+  if (authCache) {
+    const { isAuth, expireTime } = JSON.parse(authCache);
+    authRemember.checked = isAuth && new Date().getTime() < expireTime;
+  }
 });
 
-// 2. 关闭弹窗通用方法：修复反向动画（先删show类→动画结束后隐藏）
+// 2. 关闭弹窗通用方法：修复反向动画 + 【修改2】删除强制重置复选框的代码（关键，否则存储失效）
 function closeAuthModal() {
-  authModal.classList.remove('show'); // 第一步：删show类，执行反向动画
-  // 新增：延迟300毫秒（和CSS动画时长一致），动画结束后再隐藏弹窗
+  authModal.classList.remove('show');
   setTimeout(() => {
     authModal.style.display = 'none';
-  }, 200);
+  }, 300);
   authInput.value = '';
   authError.textContent = '';
-  authRemember.checked = false;
+  // 删掉这行：authRemember.checked = false; （强制重置会覆盖本地存储，导致复选框一直未选中）
 }
 
 // 点击关闭按钮/遮罩层/ESC键，关闭弹窗
@@ -51,25 +57,22 @@ document.addEventListener('keydown', (e) => e.key === 'Escape' && closeAuthModal
 authInput.addEventListener('keydown', (e) => e.key === 'Enter' && submitAuth());
 authSubmitBtn.addEventListener('click', submitAuth);
 
-// 密码验证核心逻辑
+// 密码验证核心逻辑（无修改，保留原有）
 function submitAuth() {
   const inputPwd = authInput.value.trim();
-  // 密码错误提示
   if (inputPwd !== AUTH_PASSWORD) {
     authError.textContent = '密码错误，请重新输入';
     authInput.focus();
     return;
   }
-  // 密码正确：授权通过，显示内部分类
   authSuccess();
   closeAuthModal();
 }
 
-// 授权成功：给body加标识 + 存储7天免密状态（若勾选）
+// 授权成功：给body加标识 + 存储7天免密状态（若勾选）（无修改，保留原有）
 function authSuccess() {
   document.body.classList.add('auth-ok');
   if (authRemember.checked) {
-    // 存储：授权状态 + 7天后的过期时间戳
     const expireTime = new Date().getTime() + 7 * 24 * 60 * 60 * 1000;
     localStorage.setItem('loomIconAuth', JSON.stringify({
       isAuth: true,
@@ -78,22 +81,19 @@ function authSuccess() {
   }
 }
 
-// 页面加载校验：判断免密状态是否有效
+// 页面加载校验：判断免密状态是否有效（无修改，保留原有）
 function checkAuthStatus() {
   const authCache = localStorage.getItem('loomIconAuth');
   if (!authCache) return;
 
   try {
     const { isAuth, expireTime } = JSON.parse(authCache);
-    // 状态有效且未过期，自动授权
     if (isAuth && new Date().getTime() < expireTime) {
-      document.body.classList.add('auth-ok');
+      document.body.classList.add('auth-ok'); // 授权成功，显示所有内部分类（含OMC）
     } else {
-      // 过期则清除缓存
       localStorage.removeItem('loomIconAuth');
     }
   } catch (e) {
-    // 缓存异常，清除缓存
     localStorage.removeItem('loomIconAuth');
   }
 }
@@ -423,3 +423,26 @@ function bindEvents() {
   bindEvents(); // 绑定所有事件
   syncTitleAndGrid(); // 初始化标题对齐
 })();
+
+// 验证按钮动画：移入一次扩散黑底（保持）+ 移出收缩消失（动画）+ 纯正圆
+document.addEventListener('DOMContentLoaded', function() {
+  const submitBtn = document.querySelector('.auth-submit-btn');
+  if (submitBtn) {
+    // 仅在【鼠标第一次移入】时记录坐标，触发扩散
+    submitBtn.addEventListener('mouseenter', (e) => {
+      const rect = submitBtn.getBoundingClientRect();
+      // 计算并赋值一次鼠标落点坐标，之后不再更新
+      const x = ((e.clientX - rect.left) / rect.width) * 100 + '%';
+      const y = ((e.clientY - rect.top) / rect.height) * 100 + '%';
+      submitBtn.style.setProperty('--x', x);
+      submitBtn.style.setProperty('--y', y);
+    });
+
+    // 鼠标移出时无需额外操作，CSS过渡会自动触发收缩动画
+    // 点击时复位坐标，确保下次移入重新扩散
+    submitBtn.addEventListener('mousedown', () => {
+      submitBtn.style.setProperty('--x', '50%');
+      submitBtn.style.setProperty('--y', '50%');
+    });
+  }
+});
