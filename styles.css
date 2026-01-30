@@ -749,34 +749,45 @@ footer {
   text-security: disc;
 }
 
-/* 输入框所有状态（含聚焦/自动填充）- 无框无黄 + 密码圆点保持黑色 */
-.auth-modal-content .auth-input:focus,
-.auth-modal-content .auth-input:active,
-.auth-modal-content .auth-input:-webkit-autofill,
-.auth-modal-content .auth-input:-webkit-autofill:hover,
-.auth-modal-content .auth-input:-webkit-autofill:focus {
-  border: none;
-  outline: none;
-  box-shadow: none;
-  background: #f2f4f9;
-  -webkit-text-fill-color: #000 !important; /* 强制自动填充/聚焦时密码圆点仍为黑色 */
-  transition: background-color 9999s ease-in-out 0s;
+/* 终极修复：弹窗输入框 所有状态占位符强制浅灰#9ca3af，聚焦永不黑！全浏览器适配 */
+/* 核心：1. 隔离输入框color继承 2. 破解webkit内核聚焦样式锁 3. 全内核前缀 4. 最高权重 */
+.auth-modal-content .auth-input {
+  /* 新增：占位符文字独立颜色，不继承输入框的#000（密码圆点） */
+  --placeholder-color: #9ca3af !important;
 }
 
-/* 合并版：默认/聚焦/激活 所有状态，占位符均强制浅灰#9ca3af，永不黑！（推荐） */
+/* 标准+全内核占位符：默认状态 */
 .auth-modal-content .auth-input::placeholder,
-.auth-modal-content .auth-input:focus::placeholder,
 .auth-modal-content .auth-input::-webkit-input-placeholder,
-.auth-modal-content .auth-input:focus::-webkit-input-placeholder,
 .auth-modal-content .auth-input::-moz-placeholder,
-.auth-modal-content .auth-input:focus::-moz-placeholder,
 .auth-modal-content .auth-input:-ms-input-placeholder,
-.auth-modal-content .auth-input:focus:-ms-input-placeholder {
-  color: #9ca3af !important;
-  opacity: 1 !important;
-  font-size: 16px;
-  font-weight: 400;
-  pointer-events: none;
+.auth-modal-content .auth-input:-moz-placeholder {
+  color: var(--placeholder-color) !important; /* 用变量隔离，防止继承 */
+  opacity: 1 !important;                      /* 强制不透明，浏览器默认会降透明度 */
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  pointer-events: none !important;            /* 彻底阻止浏览器修改占位符样式 */
+  transition: all 0.2s ease !important;
+}
+
+/* 核心破解：webkit/Chrome/Edge 聚焦状态占位符（专属伪类，普通focus压不住） */
+.auth-modal-content .auth-input:focus::-webkit-input-placeholder {
+  color: var(--placeholder-color) !important;
+  opacity: 0.8 !important; /* 聚焦时轻微降一点透明度，更美观，不想降就设1 */
+}
+
+/* 标准+Firefox/IE 聚焦状态占位符 */
+.auth-modal-content .auth-input:focus::placeholder,
+.auth-modal-content .auth-input:focus::-moz-placeholder,
+.auth-modal-content .auth-input:focus:-ms-input-placeholder,
+.auth-modal-content .auth-input:focus:-moz-placeholder {
+  color: var(--placeholder-color) !important;
+  opacity: 0.8 !important;
+}
+
+/* 兜底：输入框有内容时隐藏占位符，防止异常显示 */
+.auth-modal-content .auth-input:not(:focus):not(:placeholder-shown)::placeholder {
+  opacity: 0 !important;
 }
 
 /* 弹窗错误提示 */
