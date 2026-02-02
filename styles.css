@@ -1157,3 +1157,38 @@ body.auth-ok [data-cat="OMC表情"] { /* 修正4 */
 .auth-remember:hover .check-svg {
   opacity: 0.9;
 }
+/* 新增：内部资源验证 成功/失败 Toast提示（全局居中，和现有提示样式统一） */
+.auth-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) translateY(10px);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 16px 24px;
+  font-size: 16px;
+  font-weight: 500;
+  z-index: 999999; /* 比弹窗层级更高，确保不被遮挡 */
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  border: 1px solid transparent;
+  white-space: nowrap; /* 防止文字换行 */
+}
+/* 成功Toast：主题黄边框+文字，匹配项目主色 */
+.auth-toast.success {
+  border-color: rgba(245, 179, 44, 0.3);
+  color: #F5B32C;
+}
+/* 失败Toast：红色边框+文字，和弹窗错误提示配色一致 */
+.auth-toast.error {
+  border-color: rgba(220, 53, 69, 0.3);
+  color: #dc3545;
+}
+/* Toast淡入动画 */
+.auth-toast.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) translateY(0);
+}

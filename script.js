@@ -57,11 +57,40 @@ document.addEventListener('keydown', (e) => e.key === 'Escape' && closeAuthModal
 authInput.addEventListener('keydown', (e) => e.key === 'Enter' && submitAuth());
 authSubmitBtn.addEventListener('click', submitAuth);
 
+// 新增：通用内部资源验证Toast提示函数（成功/失败通用，自动消失、去重）
+function showAuthToast(text, type = 'success') {
+  // 先移除已有Toast，防止叠加
+  const oldToast = document.querySelector('.auth-toast');
+  if (oldToast) oldToast.remove();
+
+  // 创建Toast元素
+  const toast = document.createElement('div');
+  toast.className = `auth-toast ${type}`;
+  toast.textContent = text;
+  document.body.appendChild(toast);
+
+  // 触发淡入动画
+  setTimeout(() => toast.classList.add('show'), 10);
+
+  // 2秒后淡出并移除
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 2000);
+}
+
+// 密码验证核心逻辑（无修改，保留原有）
+function submitAuth() {
+  // 原有代码...
+}
+
 // 密码验证核心逻辑（无修改，保留原有）
 function submitAuth() {
   const inputPwd = authInput.value.trim();
   if (inputPwd !== AUTH_PASSWORD) {
     authError.textContent = '密码错误，请重新输入';
+    // 👇 新增：密码错误，显示失败Toast
+    showAuthToast('密码错误，内部资源验证失败', 'error');
     authInput.focus();
     return;
   }
@@ -72,6 +101,8 @@ function submitAuth() {
 // 授权成功：给body加标识 + 存储7天免密状态（若勾选）（无修改，保留原有）
 function authSuccess() {
   document.body.classList.add('auth-ok');
+  // 👇 新增：密码正确，显示成功Toast
+  showAuthToast('密码正确，内部资源验证成功');
   if (authRemember.checked) {
     const expireTime = new Date().getTime() + 7 * 24 * 60 * 60 * 1000;
     localStorage.setItem('loomIconAuth', JSON.stringify({
