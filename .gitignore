@@ -1,0 +1,15 @@
+# Supabase 凭据（公开端 anon key 不能进 git，service key 绝对不能进 git）
+js/config.local.js
+js/config.js
+
+# 编辑器 / 系统
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# 临时文件
+/tmp_*
+
+# 上传的图标备份（可选）
+assets/imported/
