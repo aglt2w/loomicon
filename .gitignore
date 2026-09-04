@@ -1,6 +1,5 @@
-# Supabase 凭据（公开端 anon key 不能进 git，service key 绝对不能进 git）
+# 本地覆盖配置（如需本地覆盖线上配置，复制 config.js 为 config.local.js）
 js/config.local.js
-js/config.js
 
 # 编辑器 / 系统
 .DS_Store

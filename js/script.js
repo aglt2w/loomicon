@@ -2,7 +2,6 @@
 function checkAuthStatus() {};
 
 // ########## Supabase 解锁密码（如未配置 supabase，用此 fallback） ##########
-const AUTH_PASSWORD_FALLBACK = "123456";
 // ###################################################
 
 // 全局分类元数据（含 is_locked）+ 解锁状态
@@ -83,11 +82,9 @@ async function submitAuth() {
     try {
       ok = await LOOMICON_DB.verifyUnlock(inputPwd);
     } catch (e) {
-      console.warn('Supabase verify failed, fallback to local:', e);
+      console.warn('Supabase verify failed:', e);
     }
   }
-  // fallback：未配置 supabase 或异常时用硬编码
-  if (!ok) ok = (inputPwd === AUTH_PASSWORD_FALLBACK);
 
   if (!ok) {
     authError.textContent = '密码错误，请重新输入';

@@ -38,7 +38,7 @@ python3 -m http.server 8765
 # http://127.0.0.1:8765/index.html
 ```
 
-> `js/config.js` 已被 `.gitignore` 排除，密钥不会进 git，请勿提交。
+> `js/config.js` 只包含公开安全的信息（URL + publishable key），可以直接提交到 git。解锁密码和管理员密码只存在数据库中，通过后台「设置」修改。
 
 ## 🗄️ Supabase 初始化
 
