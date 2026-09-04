@@ -314,6 +314,8 @@ body.admin-page {
   border-color: #F5B32C;
   color: #1a2b48;
   box-shadow: 0 4px 12px rgba(245, 179, 44, 0.25);
+  padding-left: 18px;
+  padding-right: 18px;
 }
 .admin-btn-primary:hover { background: #e0a21a; border-color: #e0a21a; }
 .admin-btn-danger {
