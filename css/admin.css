@@ -303,6 +303,8 @@ body.admin-page {
   font-family: inherit;
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .admin-btn:hover { background: rgba(255, 255, 255, 0.95); border-color: #cbd5e1; }
 .admin-btn:active { transform: scale(0.98); }
