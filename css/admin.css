@@ -109,7 +109,7 @@ body.admin-page {
 .admin-login-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(245, 179, 44, 0.32); }
 .admin-login-btn:active { transform: translateY(0); }
 .admin-login-hint {
-  margin: 18px 0 0;
+  margin: 28px 0 0;
   color: #94a3b8;
   font-size: 12px;
   line-height: 1.6;
@@ -292,8 +292,11 @@ body.admin-page {
 }
 
 .admin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   height: 38px;
-  padding: 0 16px;
+  padding: 0 30px;
   border: 1px solid rgba(229, 231, 235, 0.7);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.8);
@@ -305,6 +308,7 @@ body.admin-page {
   transition: all 0.15s ease;
   white-space: nowrap;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 .admin-btn:hover { background: rgba(255, 255, 255, 0.95); border-color: #cbd5e1; }
 .admin-btn:active { transform: scale(0.98); }
@@ -314,8 +318,8 @@ body.admin-page {
   border-color: #F5B32C;
   color: #1a2b48;
   box-shadow: 0 4px 12px rgba(245, 179, 44, 0.25);
-  padding-left: 18px;
-  padding-right: 18px;
+  padding-left: 36px;
+  padding-right: 36px;
 }
 .admin-btn-primary:hover { background: #e0a21a; border-color: #e0a21a; }
 .admin-btn-danger {
@@ -387,7 +391,7 @@ body.admin-page {
 }
 .admin-icon-card .admin-icon-actions .admin-btn {
   height: 28px;
-  padding: 0 10px;
+  padding: 0 16px;
   font-size: 12px;
 }
 
@@ -430,6 +434,10 @@ body.admin-page {
 }
 .admin-table tr:last-child td { border-bottom: none; }
 .admin-table tr:hover td { background: rgba(245, 179, 44, 0.04); }
+.admin-table td:last-child {
+  white-space: nowrap;
+  width: 1%;
+}
 .admin-lock-pill {
   display: inline-flex;
   align-items: center;
