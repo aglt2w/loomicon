@@ -804,6 +804,7 @@
       $('#imc-name').value = file.name.replace(/\.svg$/i, '');
     }
     setNewColorHint(file.name);
+    updateNewColorStatus();
   }
 
   function resetNewColorInputs() {
@@ -812,16 +813,41 @@
     $('#imc-name').value = '';
     $('#imc-file').value = '';
     setNewColorHint('');
+    updateNewColorStatus();
   }
 
+  // 添加颜色区的实时状态提示：让「名字有没有填、文件有没有选」一目了然
+  function updateNewColorStatus() {
+    const el = $('#imc-status');
+    if (!el) return;
+    const name = ($('#imc-name').value || '').trim();
+    const hasFile = !!newColorSvg;
+    if (hasFile && name) {
+      el.textContent = `可以添加：${name}`;
+      el.className = 'admin-color-status is-ready';
+    } else if (!hasFile && name) {
+      el.textContent = '还差一步：请选择该颜色的 .svg 文件';
+      el.className = 'admin-color-status is-warn';
+    } else if (hasFile && !name) {
+      el.textContent = '还差一步：请填写颜色名';
+      el.className = 'admin-color-status is-warn';
+    } else {
+      el.textContent = '';
+      el.className = 'admin-color-status';
+    }
+  }
+
+  $('#imc-name').addEventListener('input', updateNewColorStatus);
+
   $('#imc-add').addEventListener('click', () => {
-    const name = $('#imc-name').value.trim();
-    if (!name) { toast('请填写颜色名', 'error'); return; }
-    if (!newColorSvg) { toast('请先选择该颜色的 SVG 文件', 'error'); return; }
-    if (modalColors.some((c) => c.name === name)) { toast('已经有同名颜色了', 'error'); return; }
+    const name = ($('#imc-name').value || '').trim();
+    if (!name) { toast('请填写颜色名', 'error'); updateNewColorStatus(); return; }
+    if (!newColorSvg) { toast('请先选择该颜色的 SVG 文件', 'error'); updateNewColorStatus(); return; }
+    if (modalColors.some((c) => c.name === name)) { toast(`已经有「${name}」这个颜色了，换个名字`, 'error'); return; }
     modalColors.push({ name, svg: newColorSvg });
     resetNewColorInputs();
     renderIconColors();
+    updateNewColorStatus();
   });
 
   bindNewColorDrop();

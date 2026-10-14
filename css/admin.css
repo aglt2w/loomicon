@@ -748,6 +748,16 @@ body.admin-page {
 .admin-settings-card .admin-input { width: 100%; margin-bottom: 12px; }
 .admin-settings-card hr { margin: 24px 0; border: none; border-top: 1px solid rgba(229, 231, 235, 0.6); }
 
+/* 添加颜色区：实时状态提示 */
+.admin-color-status {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #94a3b8;
+  min-height: 0;
+}
+.admin-color-status.is-ready { color: #16a34a; font-weight: 600; }
+.admin-color-status.is-warn { color: #d97706; }
+
 .admin-field-tip {
   margin: 8px 0 0;
   font-size: 12px;

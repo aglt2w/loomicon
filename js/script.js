@@ -1,6 +1,3 @@
-// 加这1行：函数提升声明，消除浏览器未定义警告
-function checkAuthStatus() {};
-
 // ########## Supabase 解锁密码（如未配置 supabase，用此 fallback） ##########
 // ###################################################
 
@@ -110,6 +107,9 @@ function authSuccess() {
       isAuth: true,
       expireTime: expireTime
     }));
+  } else {
+    // 没勾选「7天内无需重复验证」：清掉旧缓存，避免下次仍自动免验证
+    localStorage.removeItem(UNLOCK_KEY);
   }
 }
 
@@ -131,7 +131,7 @@ function getVisibleCategories() {
   return dbCategories.filter(c => c.name !== '全部图标' && (!c.is_locked || isUnlocked));
 }
 
-// 页面加载校验本地免密缓存
+// 页面加载校验本地免密缓存（7天免验证）
 function checkAuthStatus() {
   const authCache = localStorage.getItem(UNLOCK_KEY);
   if (!authCache) return;
@@ -140,8 +140,13 @@ function checkAuthStatus() {
     if (isAuth && new Date().getTime() < expireTime) {
       document.body.classList.add('auth-ok');
       isUnlocked = true;
+      const days = ((expireTime - Date.now()) / 86400000).toFixed(1);
+      console.log(`🔓 命中本地免验证缓存，剩余 ${days} 天，无需重复输入密码`);
     } else {
+      // 过期：清掉缓存，回到需要验证的状态
       localStorage.removeItem(UNLOCK_KEY);
+      document.body.classList.remove('auth-ok');
+      isUnlocked = false;
     }
   } catch (e) {
     localStorage.removeItem(UNLOCK_KEY);
@@ -283,8 +288,17 @@ function renderIcons(data) {
   }
   innerContainer.innerHTML = ''; // 清空内层容器
   
-  // 遍历你的分类和图标
-  Object.keys(grouped).forEach(cat => {
+  // 遍历分类和图标：分组顺序按数据库分类的 sort_order 排（与下拉、后台保持一致），
+  // 数据库中不存在的分类名（兜底）排在最后，避免漏渲染。
+  const catOrder = {};
+  dbCategories.forEach((c) => { catOrder[c.name] = c.sort_order || 0; });
+  const orderedCats = Object.keys(grouped).sort((a, b) => {
+    const oa = catOrder[a] !== undefined ? catOrder[a] : 9999;
+    const ob = catOrder[b] !== undefined ? catOrder[b] : 9999;
+    return oa - ob;
+  });
+
+  orderedCats.forEach(cat => {
     const title = document.createElement('h2');
     title.className = 'category-title';
     title.textContent = cat;
@@ -589,6 +603,89 @@ function bindIconPreview() {
   }
 }
 
+// ========== 导出 PNG（纯前端：SVG -> Canvas -> PNG，倍数 1-4x，默认 4x） ==========
+const pngDownloadBtn = document.getElementById('png-download-btn');
+const pngScaleBox = document.getElementById('png-scale-options');
+let pngScale = 4; // 当前导出倍数，默认 4x
+
+// 从 SVG 字符串解析出原始宽高（没有显式宽高时按 viewBox，都没有则兜底 512）
+function parseSvgSize(svgText) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgText, 'image/svg+xml');
+  const svg = doc.querySelector('svg');
+  if (!svg) return null;
+  let w = parseFloat(svg.getAttribute('width'));
+  let h = parseFloat(svg.getAttribute('height'));
+  if (!w || !h) {
+    const vb = (svg.getAttribute('viewBox') || '').trim().split(/[\s,]+/).map(Number);
+    if (vb.length === 4 && vb.every(n => !isNaN(n))) {
+      w = vb[2]; h = vb[3];
+    }
+  }
+  if (!w || !h) { w = 512; h = 512; } // 最终兜底
+  return { w, h, svg: svg.outerHTML };
+}
+
+// 核心导出：把当前选中的颜色 SVG 栅格化成指定倍数的 PNG 并下载
+function exportPng(scale) {
+  const svgText = currentPreviewSvg();
+  if (!svgText) return;
+  const parsed = parseSvgSize(svgText);
+  if (!parsed) {
+    showAuthToast('SVG 解析失败，无法导出 PNG', 'error');
+    return;
+  }
+  const { w, h } = parsed;
+  // 规范化：强制给 SVG 显式 width/height（否则部分浏览器 img 解码会失败）
+  const doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+  const svgEl = doc.querySelector('svg');
+  svgEl.setAttribute('width', w);
+  svgEl.setAttribute('height', h);
+  svgEl.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  const blob = new Blob([new XMLSerializer().serializeToString(svgEl)], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.onload = function() {
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(w * scale);
+    canvas.height = Math.round(h * scale);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    URL.revokeObjectURL(url);
+    canvas.toBlob(function(pngBlob) {
+      if (!pngBlob) { showAuthToast('PNG 生成失败', 'error'); return; }
+      const a = document.createElement('a');
+      const pngUrl = URL.createObjectURL(pngBlob);
+      a.href = pngUrl;
+      a.download = `${currentPreviewFileName()}-${scale}x.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(pngUrl), 1000);
+      showAuthToast(`已导出 ${scale}x PNG（${canvas.width}×${canvas.height}px）`);
+    }, 'image/png');
+  };
+  img.onerror = function() {
+    URL.revokeObjectURL(url);
+    showAuthToast('SVG 加载失败，无法导出 PNG', 'error');
+  };
+  img.src = url;
+}
+
+// 绑定导出 PNG 相关事件
+function bindPngExport() {
+  if (!pngDownloadBtn || !pngScaleBox) return;
+  // 倍数切换
+  pngScaleBox.addEventListener('click', function(e) {
+    const btn = e.target.closest('.png-scale-btn');
+    if (!btn) return;
+    pngScale = parseInt(btn.dataset.scale, 10);
+    pngScaleBox.querySelectorAll('.png-scale-btn').forEach(b => b.classList.toggle('active', b === btn));
+  });
+  // 下载 PNG
+  pngDownloadBtn.addEventListener('click', function() { exportPng(pngScale); });
+}
+
 // ========== 分类筛选（保留逻辑） ==========
 function filterByCategory(cat) {
   const filtered = cat === '全部图标' ? iconData : iconData.filter(icon => icon.category === cat);
@@ -697,11 +794,16 @@ function bindEvents() {
 
 // ========== 初始化（整合逻辑，Supabase 优先） ==========
 (async function init() {
+  // 最先恢复「7天内无需重复验证」的本地缓存状态，必须在渲染图标前调用，
+  // 否则 renderIcons 会按未解锁状态过滤掉上锁分类的图标。
+  checkAuthStatus();
+
   await loadIconData(); // 内部已经设置 allCategories + iconData + dbCategories
   renderSelectOptions(); // 生成下拉框
   renderIcons(iconData);  // 渲染图标（内部按解锁状态过滤）
   bindEvents();          // 绑定所有事件
   bindIconPreview();     // 绑定点击放大预览
+  bindPngExport();       // 绑定弹窗内导出 PNG
   syncTitleAndGrid();    // 初始化标题对齐
 })();
 
