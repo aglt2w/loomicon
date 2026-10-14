@@ -610,7 +610,7 @@ function bindIconPreview() {
 const pngDownloadBtn = document.getElementById('png-download-btn');
 const pngScaleInput = document.getElementById('png-scale-input');
 const pngSizeHint = document.getElementById('png-size-hint');
-const PNG_SCALE_DEFAULT = 6;   // 默认倍数
+const PNG_SCALE_DEFAULT = 8;   // 默认倍数
 const PNG_SCALE_MIN = 1;
 const PNG_SCALE_MAX = 20;      // 上限，防止生成超大画布把浏览器撑爆
 const PNG_SCALE_KEY = 'loomIconPngScale'; // 记住用户上次选择的倍数
