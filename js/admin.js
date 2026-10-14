@@ -9,6 +9,7 @@
   let adminPwd = null;       // 当前会话的管理员明文密码（仅保存在内存）
   let categories = [];       // 全部分类（含 id、is_locked）
   let icons = [];            // 全部图标（含 id、category_id、svg、name）
+  let iconColors = [];       // 全部图标颜色版本（含 id、icon_id、name、svg）
   let catById = new Map();   // id -> category
   let catByName = new Map(); // name -> category
   let currentView = 'icons';
@@ -122,6 +123,7 @@
       const data = await LOOMICON_DB.fetchAll(true);
       categories = data.categories || [];
       icons = data.icons || [];
+      iconColors = data.iconColors || [];
       catById = new Map(categories.map((c) => [c.id, c]));
       catByName = new Map(categories.map((c) => [c.name, c]));
       renderFilters();
@@ -371,6 +373,12 @@
     renderFilters();
     if (icon) $('#im-cat').value = icon.category_id;
     updateIconPreview();
+    // 颜色版本：只有已有图标才有 id 可挂载
+    modalColors = icon ? iconColorsOf(icon.id).map((c) => ({ id: c.id, name: c.name, svg: c.svg })) : [];
+    resetNewColorInputs();
+    // 已有图标：把图标自带的那份 SVG 认成「原图」版本（无需重复上传）
+    if (icon) ensureOriginColor();
+    renderIconColors();
     $('#icon-modal').hidden = false;
   }
 
@@ -434,6 +442,9 @@
     }
     setIconDropHint(file.name);
     updateIconPreview();
+    // 图标本身 = 第一个颜色版本，不需要再去下面重复上传一次
+    ensureOriginColor();
+    renderIconColors();
   }
 
   bindIconDrop();
@@ -458,12 +469,24 @@
           .filter((i) => i.category_id === category_id)
           .reduce((m, i) => Math.max(m, i.sort_order || 0), -1) + 1;
     try {
+      let savedIconId = editingIconId;
       if (editingIconId) {
         await LOOMICON_DB.adminAction(adminPwd, 'update_icon', { id: editingIconId, name, category_id, sort_order, svg });
-        toast('已保存', 'success');
       } else {
-        await LOOMICON_DB.adminAction(adminPwd, 'create_icon', { name, category_id, sort_order, svg });
-        toast('已新增', 'success');
+        const res = await LOOMICON_DB.adminAction(adminPwd, 'create_icon', { name, category_id, sort_order, svg });
+        savedIconId = res && res.id;
+      }
+      // 保存颜色版本（需要图标 id，所以放在图标保存之后）
+      let colorFail = 0;
+      if (savedIconId && modalColors.length) {
+        const colorErr = await saveIconColors(savedIconId);
+        colorFail = colorErr.count;
+        if (colorErr.firstMsg) console.error('[LOOMICON] 颜色保存失败原因：', colorErr.firstMsg);
+      }
+      if (colorFail) {
+        toast(`图标已保存，但 ${colorFail} 个颜色版本保存失败：${lastColorError || '未知错误'}`, 'error');
+      } else {
+        toast('已保存', 'success');
       }
       $('#icon-modal').hidden = true;
       await refreshAll();
@@ -563,11 +586,10 @@
     try {
       if (editingCatId) {
         await LOOMICON_DB.adminAction(adminPwd, 'update_category', { id: editingCatId, name, slug, sort_order, is_locked });
-        toast('已保存', 'success');
       } else {
         await LOOMICON_DB.adminAction(adminPwd, 'create_category', { name, slug, sort_order, is_locked });
-        toast('已新增', 'success');
       }
+      toast('已保存', 'success');
       $('#cat-modal').hidden = true;
       await refreshAll();
     } catch (e) { toast('保存失败：' + e.message, 'error'); }
@@ -672,6 +694,183 @@
     await refreshAll();
   }
   bindUpload();
+
+  // ============== 图标颜色版本 ==============
+  // 每个图标可以挂若干「颜色版本」，每个版本是一份完整的该颜色 SVG。
+  // 公开端点开这个图标时，只能在这些已上传的版本之间切换。
+  let modalColors = [];     // 弹窗内正在编辑的颜色版本 [{id?, name, svg, fromIcon?}]
+  let newColorSvg = '';     // 待添加的颜色的 SVG 源码
+  let newColorFile = '';    // 待添加的颜色的文件名（仅用于提示）
+  let lastColorError = '';  // 最近一次颜色保存失败的原因（用于提示）
+
+  function iconColorsOf(iconId) {
+    return iconColors
+      .filter((c) => c.icon_id === iconId)
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  }
+
+  function renderIconColors() {
+    const box = $('#im-colors');
+    if (!box) return;
+    if (!modalColors.length) {
+      box.innerHTML = '<p class="admin-field-tip" style="margin:0;">还没有颜色版本，图标只有默认样式。</p>';
+      return;
+    }
+    box.innerHTML = modalColors.map((c, idx) => `
+      <div class="admin-color-item${c.fromIcon ? ' is-origin' : ''}" data-idx="${idx}">
+        <span class="swatch">${c.svg}</span>
+        <input class="admin-color-name" data-idx="${idx}" value="${escapeHtml(c.name)}" maxlength="20" placeholder="颜色名">
+        ${c.fromIcon ? '<span class="origin-tag">原图</span>' : ''}
+        <button class="del" data-del-color="${idx}" title="移除">×</button>
+      </div>
+    `).join('');
+  }
+
+  // 颜色名就地编辑
+  $('#im-colors').addEventListener('input', (e) => {
+    const el = e.target;
+    if (!el.classList || !el.classList.contains('admin-color-name')) return;
+    const idx = parseInt(el.dataset.idx, 10);
+    if (modalColors[idx]) modalColors[idx].name = el.value;
+  });
+
+  $('#im-colors').addEventListener('click', (e) => {
+    const idx = e.target.dataset && e.target.dataset.delColor;
+    if (idx === undefined) return;
+    modalColors.splice(parseInt(idx, 10), 1);
+    renderIconColors();
+  });
+
+  // 把图标本身的 SVG 变成「第一个颜色」，无需重复上传。
+  // 作用：用户只要改个名字（如「黑色」）就能把默认样式纳入可选颜色列表。
+  function ensureOriginColor() {
+    const svg = (iconModalSvg || '').trim();
+    if (!svg) return;
+    const first = modalColors[0];
+    if (first && first.fromIcon) {
+      // 原图版本已存在：跟随最新的图标 SVG
+      first.svg = svg;
+      return;
+    }
+    // 若列表里已经有同样 svg 的版本（老数据），把它标记为原图，避免重复
+    const same = modalColors.find((c) => (c.svg || '').trim() === svg);
+    if (same) {
+      same.fromIcon = true;
+      same.svg = svg;
+      return;
+    }
+    modalColors.unshift({ name: '默认', svg, fromIcon: true });
+  }
+
+  function setNewColorHint(fileName) {
+    const hint = $('#imc-drop-hint');
+    if (!hint) return;
+    if (fileName) {
+      hint.textContent = fileName;
+      hint.classList.add('is-file');
+    } else {
+      hint.textContent = '点击或拖拽该颜色的 .svg 文件';
+      hint.classList.remove('is-file');
+    }
+  }
+
+  function bindNewColorDrop() {
+    const drop = $('#imc-drop');
+    const fileInput = $('#imc-file');
+    if (!drop || !fileInput) return;
+    drop.addEventListener('click', () => fileInput.click());
+    drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('dragover'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+    drop.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      drop.classList.remove('dragover');
+      await handleNewColorFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', async (e) => {
+      await handleNewColorFile(e.target.files[0]);
+      e.target.value = '';
+    });
+  }
+
+  async function handleNewColorFile(file) {
+    if (!file) return;
+    if (!/\.svg$/i.test(file.name)) { toast('请选择 .svg 格式的文件', 'error'); return; }
+    const text = (await file.text()).trim();
+    if (!/<svg[\s>]/i.test(text)) { toast('文件内容不是有效的 SVG', 'error'); return; }
+    newColorSvg = text;
+    newColorFile = file.name;
+    // 颜色名留空时用文件名兜底
+    if (!$('#imc-name').value.trim()) {
+      $('#imc-name').value = file.name.replace(/\.svg$/i, '');
+    }
+    setNewColorHint(file.name);
+  }
+
+  function resetNewColorInputs() {
+    newColorSvg = '';
+    newColorFile = '';
+    $('#imc-name').value = '';
+    $('#imc-file').value = '';
+    setNewColorHint('');
+  }
+
+  $('#imc-add').addEventListener('click', () => {
+    const name = $('#imc-name').value.trim();
+    if (!name) { toast('请填写颜色名', 'error'); return; }
+    if (!newColorSvg) { toast('请先选择该颜色的 SVG 文件', 'error'); return; }
+    if (modalColors.some((c) => c.name === name)) { toast('已经有同名颜色了', 'error'); return; }
+    modalColors.push({ name, svg: newColorSvg });
+    resetNewColorInputs();
+    renderIconColors();
+  });
+
+  bindNewColorDrop();
+
+  // 把弹窗内的颜色版本与数据库对齐：多的删除、新的新增、改的更新
+  async function saveIconColors(iconId) {
+    const old = iconColorsOf(iconId);
+    const keptIds = new Set(modalColors.filter((c) => c.id).map((c) => c.id));
+    let failCount = 0;
+    let firstMsg = '';
+    const seenNames = new Set();
+
+    // 1) 删除已移除的
+    for (const o of old) {
+      if (keptIds.has(o.id)) continue;
+      try {
+        await LOOMICON_DB.adminAction(adminPwd, 'delete_icon_color', { id: o.id });
+      } catch (e) {
+        failCount++; if (!firstMsg) firstMsg = e.message || String(e);
+        console.error('delete color fail', e);
+      }
+    }
+    // 2) 新增 / 更新（同时把顺序写成 0..n-1）
+    let order = 0;
+    for (const c of modalColors) {
+      const name = (c.name || '').trim();
+      if (!name) continue;                       // 名字空着就跳过，避免脏数据
+      if (seenNames.has(name)) continue;         // 前端去重，避免撞 unique(icon_id,name)
+      seenNames.add(name);
+      const o = c.id ? old.find((x) => x.id === c.id) : null;
+      try {
+        if (o) {
+          await LOOMICON_DB.adminAction(adminPwd, 'update_icon_color', {
+            id: o.id, name, svg: c.svg, sort_order: order,
+          });
+        } else {
+          await LOOMICON_DB.adminAction(adminPwd, 'create_icon_color', {
+            icon_id: iconId, name, svg: c.svg, sort_order: order,
+          });
+        }
+        order++;
+      } catch (e) {
+        failCount++; if (!firstMsg) firstMsg = e.message || String(e);
+        console.error('save color fail', name, e);
+      }
+    }
+    lastColorError = firstMsg;
+    return { count: failCount, firstMsg };
+  }
 
   // ============== 数据导入 ==============
   function bindImport() {

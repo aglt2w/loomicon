@@ -6,6 +6,7 @@ function checkAuthStatus() {};
 
 // 全局分类元数据（含 is_locked）+ 解锁状态
 let dbCategories = [];          // [{id, name, slug, is_locked, sort_order}]
+let iconColors = [];            // [{id, icon_id, name, svg, sort_order}] 图标颜色版本
 let isUnlocked = false;         // 是否已解锁
 const UNLOCK_KEY = 'loomIconAuth';
 
@@ -168,30 +169,40 @@ const dom = {
 const downloadSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M3 19H21V21H3V19ZM13 13.1716L19.0711 7.1005L20.4853 8.51472L12 17L3.51472 8.51472L4.92893 7.1005L11 13.1716V2H13V13.1716Z"></path></svg>';
 const copySvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M6.9998 6V3C6.9998 2.44772 7.44752 2 7.9998 2H19.9998C20.5521 2 20.9998 2.44772 20.9998 3V17C20.9998 17.5523 20.5521 18 19.9998 18H16.9998V20.9991C16.9998 21.5519 16.5499 22 15.993 22H4.00666C3.45059 22 3 21.5554 3 20.9991L3.0026 7.00087C3.0027 6.44811 3.45264 6 4.00942 6H6.9998ZM5.00242 8L5.00019 20H14.9998V8H5.00242ZM8.9998 6H16.9998V16H18.9998V4H8.9998V6Z"></path></svg>';
 
-// ========== 核心：数据加载（Supabase 优先，本地 JSON 兜底） ==========
-async function loadIconData() {
-  // 1. 优先尝试 Supabase
-  if (window.LOOMICON_DB && LOOMICON_DB.isConfigured()) {
-    try {
-      await LOOMICON_DB.init();
-      const { categories, icons } = await LOOMICON_DB.fetchAll();
-      dbCategories = categories || [];
-      iconData = (icons || []).map(item => ({
-        id: item.id,
-        name: item.name,
-        svg: item.svg,
-        category: (categories.find(c => c.id === item.category_id) || {}).name || '未分类',
-        category_id: item.category_id,
-      }));
-      // 提取 allCategories（用可见分类）
-      const visible = getVisibleCategories();
-      allCategories = ['全部图标', ...visible.map(c => c.name)];
-      console.log(`✅ Supabase 加载完成：${iconData.length} 个图标，${dbCategories.length} 个分类（可见 ${visible.length}）`);
-      return;
-    } catch (e) {
-      console.warn('Supabase 加载失败，fallback 到本地 JSON：', e);
-    }
+  // 颜色版本表可能还没建（旧库未跑迁移），失败时静默降级为空
+  function colorsOfIcon(iconId) {
+    return iconColors
+      .filter((c) => c.icon_id === iconId)
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   }
+
+  // ========== 核心：数据加载（Supabase 优先，本地 JSON 兜底） ==========
+  async function loadIconData() {
+    // 1. 优先尝试 Supabase
+    if (window.LOOMICON_DB && LOOMICON_DB.isConfigured()) {
+      try {
+        await LOOMICON_DB.init();
+        const { categories, icons, iconColors: colors } = await LOOMICON_DB.fetchAll();
+        dbCategories = categories || [];
+        iconColors = colors || [];
+        iconData = (icons || []).map(item => ({
+          id: item.id,
+          name: item.name,
+          svg: item.svg,
+          category: (categories.find(c => c.id === item.category_id) || {}).name || '未分类',
+          category_id: item.category_id,
+          colorVariants: colorsOfIcon(item.id),
+        }));
+        // 提取 allCategories（用可见分类）
+        const visible = getVisibleCategories();
+        allCategories = ['全部图标', ...visible.map(c => c.name)];
+        const withColor = iconData.filter(i => i.colorVariants.length).length;
+        console.log(`✅ Supabase 加载完成：${iconData.length} 个图标，${dbCategories.length} 个分类（可见 ${visible.length}），${withColor} 个图标有多颜色`);
+        return;
+      } catch (e) {
+        console.warn('Supabase 加载失败，fallback 到本地 JSON：', e);
+      }
+    }
 
   // 2. fallback：本地 JSON
   try {
@@ -311,6 +322,7 @@ function createIconCard(icon) {
   const card = document.createElement('div');
   card.className = 'icon-card';
   // 在卡片上存一份图标数据，供“点击放大预览”使用
+  card.dataset.id = icon.id || '';
   card.dataset.name = icon.name;
   card.dataset.svg = encodeURIComponent(icon.svg);
   card.dataset.category = icon.category || '';
@@ -435,16 +447,66 @@ const previewDownloadBtn = document.getElementById('icon-preview-download-btn');
 const previewCopyBtn = document.getElementById('icon-preview-copy-btn');
 const previewCloseBtn = document.getElementById('icon-preview-close');
 const previewMask = document.getElementById('icon-preview-mask');
-let previewIcon = null; // 当前弹窗中展示的图标 {name, svg, category}
+const previewColorsBox = document.getElementById('icon-preview-colors');
+const previewColorsList = document.getElementById('icon-preview-colors-list');
+let previewIcon = null;   // 当前弹窗中展示的图标 {name, svg, category, colorVariants}
+let previewColorId = '';  // 当前选中的颜色 id（'' = 默认颜色/原图）
+
+// 按名称排序用：当前弹窗可用的颜色（顺序固定）
+function previewColorVariants() {
+  const list = (previewIcon && previewIcon.colorVariants) || [];
+  return [...list].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+}
+
+// 应用某个颜色：颜色项本身就是一份完整 SVG，直接把图标替换成它
+function applyPreviewColor(colorId) {
+  if (!previewIcon) return;
+  const color = previewColorVariants().find((c) => c.id === colorId);
+  previewColorId = color ? color.id : '';
+  const svg = color ? color.svg : previewIcon.svg;
+  previewSvgBox.innerHTML = svg;
+  previewSvgBox.setAttribute('data-source-svg', svg);
+  if (previewColorsList) {
+    previewColorsList.querySelectorAll('.icon-preview-color').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.colorId === previewColorId);
+    });
+  }
+}
+
+// 渲染颜色切换控件（没有配置颜色则整体隐藏）
+function renderPreviewColors() {
+  if (!previewColorsBox || !previewColorsList) return;
+  previewColorsList.innerHTML = '';
+  const list = previewColorVariants();
+  if (!list.length) {
+    previewColorsBox.hidden = true;
+    return;
+  }
+  previewColorsBox.hidden = false;
+  list.forEach((c) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'icon-preview-color';
+    btn.dataset.colorId = c.id;
+    btn.title = c.name;
+    btn.innerHTML = `<span class="swatch">${c.svg}</span><span class="cname">${c.name}</span>`;
+    btn.addEventListener('click', () => applyPreviewColor(c.id));
+    previewColorsList.appendChild(btn);
+  });
+  // 默认选中颜色库里的第一种颜色，让用户一打开就看到可选效果
+  applyPreviewColor(list[0].id);
+}
 
 // 打开放大预览
-function openIconPreview(name, svg, category) {
+function openIconPreview(name, svg, category, colorVariants) {
   if (!previewModal) return;
-  previewIcon = { name: name, svg: svg, category: category };
+  previewIcon = { name: name, svg: svg, category: category, colorVariants: colorVariants || [] };
   previewNameEl.textContent = name;
   previewCatEl.textContent = category || '';
   previewCatEl.style.display = category ? 'inline-block' : 'none';
+  previewColorId = '';
   previewSvgBox.innerHTML = svg; // 放大展示图标
+  renderPreviewColors();
   previewModal.style.display = 'block';
   document.body.style.overflow = 'hidden'; // 锁住背景滚动
   setTimeout(() => previewModal.classList.add('show'), 10);
@@ -459,7 +521,22 @@ function closeIconPreview() {
     previewModal.style.display = 'none';
     previewSvgBox.innerHTML = '';
     previewIcon = null;
+    previewColorId = '';
   }, 300);
+}
+
+// 弹窗内「下载/复制」取当前选中的颜色版本
+function currentPreviewSvg() {
+  if (!previewIcon) return null;
+  const color = previewColorVariants().find((c) => c.id === previewColorId);
+  return color ? color.svg : previewIcon.svg;
+}
+
+// 下载/复制时给文件名带上颜色名，避免多色文件重名
+function currentPreviewFileName() {
+  if (!previewIcon) return '';
+  const color = previewColorVariants().find((c) => c.id === previewColorId);
+  return color ? `${previewIcon.name}-${color.name}` : previewIcon.name;
 }
 
 // 绑定放大预览相关事件
@@ -482,7 +559,11 @@ function bindIconPreview() {
       if (!card) return;
       const name = card.dataset.name;
       const svg = card.dataset.svg ? decodeURIComponent(card.dataset.svg) : '';
-      if (name && svg) openIconPreview(name, svg, card.dataset.category || '');
+      const iconId = card.dataset.id;
+      const icon = iconId
+        ? iconData.find((it) => it.id === iconId)
+        : iconData.find((it) => it.name === name);
+      if (name && svg) openIconPreview(name, svg, card.dataset.category || '', (icon && icon.colorVariants) || []);
     });
   }
 
@@ -493,15 +574,17 @@ function bindIconPreview() {
     if (e.key === 'Escape') closeIconPreview();
   });
 
-  // 弹窗内下载 / 复制（复用原有能力）
+  // 弹窗内下载 / 复制（复用原有能力，取当前选中的颜色版本）
   if (previewDownloadBtn) {
     previewDownloadBtn.addEventListener('click', function() {
-      if (previewIcon) downloadIcon(previewIcon.name, previewIcon.svg);
+      const svg = currentPreviewSvg();
+      if (svg) downloadIcon(currentPreviewFileName(), svg);
     });
   }
   if (previewCopyBtn) {
     previewCopyBtn.addEventListener('click', function() {
-      if (previewIcon) copyIcon(previewIcon.name, previewIcon.svg);
+      const svg = currentPreviewSvg();
+      if (svg) copyIcon(currentPreviewFileName(), svg);
     });
   }
 }

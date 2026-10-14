@@ -203,11 +203,11 @@
         </div>
         <div class="admin-card admin-settings-card">
           <h3>修改后台管理员密码</h3>
-          <input type="password" class="admin-input" id="new-admin-pwd" placeholder="新管理员密码">
+          <input type="password" class="admin-input" id="new-admin-pwd" placeholder="新管理员密码" autocomplete="new-password" name="loomicon-new-admin-pwd">
           <button class="admin-btn admin-btn-primary" id="btn-change-admin">修改</button>
           <hr>
           <h3>修改公开端解锁密码</h3>
-          <input type="password" class="admin-input" id="new-unlock-pwd" placeholder="新解锁密码">
+          <input type="password" class="admin-input" id="new-unlock-pwd" placeholder="新解锁密码" autocomplete="new-password" name="loomicon-new-unlock-pwd">
           <button class="admin-btn admin-btn-primary" id="btn-change-unlock">修改</button>
         </div>
       </section>
@@ -241,6 +241,19 @@
     <div class="admin-form-row">
       <label>预览</label>
       <div class="admin-preview-box" id="im-preview"></div>
+    </div>
+    <div class="admin-form-row" id="im-colors-row">
+      <label>颜色版本（公开端只能在这些颜色之间切换）</label>
+      <div class="admin-color-list" id="im-colors"></div>
+      <div class="admin-color-add">
+        <input type="text" class="admin-input" id="imc-name" placeholder="颜色名，如「黑色」">
+        <div class="admin-upload-drop admin-drop-sm" id="imc-drop">
+          <input type="file" accept=".svg,image/svg+xml" id="imc-file" hidden>
+          <p class="admin-upload-hint" id="imc-drop-hint">点击或拖拽该颜色的 .svg 文件</p>
+        </div>
+        <button class="admin-btn" id="imc-add">添加颜色</button>
+      </div>
+      <p class="admin-field-tip">不添加颜色 = 该图标只有默认样式。上方「SVG 文件」会自动成为第一个颜色（默认），可直接改名，无需重复上传。</p>
     </div>
     <div class="admin-form-actions">
       <button class="admin-btn" data-close="icon-modal">取消</button>

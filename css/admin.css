@@ -748,6 +748,113 @@ body.admin-page {
 .admin-settings-card .admin-input { width: 100%; margin-bottom: 12px; }
 .admin-settings-card hr { margin: 24px 0; border: none; border-top: 1px solid rgba(229, 231, 235, 0.6); }
 
+.admin-field-tip {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* ========== 图标弹窗内的颜色版本 ========== */
+.admin-color-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.admin-color-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px 5px 6px;
+  border: 1px solid rgba(245, 179, 44, 0.35);
+  background: rgba(245, 179, 44, 0.06);
+  border-radius: 10px;
+  font-size: 13px;
+  color: #1a2b48;
+  max-width: 100%;
+}
+.admin-color-item .swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid rgba(229, 231, 235, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.admin-color-item .swatch svg { width: 15px; height: 15px; display: block; }
+.admin-color-item .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 颜色名就地编辑：看起来还是文字，点进去就能改 */
+.admin-color-item .admin-color-name {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: #1a2b48;
+  padding: 2px 4px;
+  border-radius: 6px;
+  width: 74px;
+  min-width: 46px;
+  outline: none;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+.admin-color-item .admin-color-name:hover { background: rgba(255, 255, 255, 0.75); }
+.admin-color-item .admin-color-name:focus {
+  background: #fff;
+  box-shadow: 0 0 0 2px rgba(245, 179, 44, 0.35);
+}
+
+/* 原图标记：这一版就是图标本身的 SVG */
+.admin-color-item .origin-tag {
+  font-size: 10px;
+  line-height: 1;
+  color: #a97a09;
+  background: rgba(245, 179, 44, 0.18);
+  border-radius: 5px;
+  padding: 3px 5px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.admin-color-item.is-origin {
+  border-color: rgba(245, 179, 44, 0.7);
+  background: rgba(245, 179, 44, 0.12);
+}
+
+.admin-color-item .del {
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  border-radius: 4px;
+}
+.admin-color-item .del:hover { color: #dc3545; background: rgba(220, 53, 69, 0.08); }
+
+/* 添加颜色的那一行：颜色名 + 选文件 + 按钮 */
+.admin-color-add {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.admin-color-add .admin-input { flex: 1 1 140px; min-width: 120px; }
+.admin-color-add .admin-upload-drop {
+  flex: 1 1 220px;
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+}
+.admin-color-add .admin-upload-hint { font-size: 13px; font-weight: 400; color: #64748b; }
+.admin-color-add .admin-btn { flex: 0 0 auto; }
+
 /* ========== 空状态 ========== */
 .admin-empty {
   padding: 60px 20px;

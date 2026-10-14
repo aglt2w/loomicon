@@ -41,20 +41,37 @@ create table if not exists public.app_settings (
   updated_at timestamptz not null default now()
 );
 
+-- 图标颜色版本（仅 logo 分类使用）
+-- 一个图标可以挂多个颜色版本，每个版本是一份该颜色的完整 SVG 文件。
+-- 颜色由后台上传维护，公开端只能在已存在的版本之间切换，不能自选任意颜色。
+create table if not exists public.icon_colors (
+  id uuid primary key default gen_random_uuid(),
+  icon_id uuid not null references public.icons(id) on delete cascade,
+  name text not null,                 -- 颜色显示名，如「黑色」
+  svg text not null,                  -- 该颜色的完整 SVG 源码
+  sort_order int not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (icon_id, name)
+);
+
 -- ============ 2. 索引 ============
 create index if not exists idx_icons_category_id on public.icons(category_id);
 create index if not exists idx_icons_sort_order on public.icons(sort_order);
 create index if not exists idx_categories_sort_order on public.categories(sort_order);
+create index if not exists idx_icon_colors_icon on public.icon_colors(icon_id, sort_order);
 
 -- ============ 3. 启用 RLS ============
 alter table public.categories enable row level security;
 alter table public.icons     enable row level security;
 alter table public.app_settings enable row level security;
+alter table public.icon_colors  enable row level security;
 
 -- ============ 4. 公开读策略（anon 角色可读） ============
 drop policy if exists "anon read categories"  on public.categories;
 drop policy if exists "anon read icons"      on public.icons;
 drop policy if exists "anon read app_settings" on public.app_settings;
+drop policy if exists "anon read icon_colors" on public.icon_colors;
 
 create policy "anon read categories"
   on public.categories for select to anon using (true);
@@ -64,6 +81,9 @@ create policy "anon read icons"
 
 create policy "anon read app_settings"
   on public.app_settings for select to anon using (true);
+
+create policy "anon read icon_colors"
+  on public.icon_colors for select to anon using (true);
 
 -- 写入通过 SECURITY DEFINER 函数完成，anon 角色没有直接 INSERT/UPDATE/DELETE 权限
 -- （即使前端拿到 anon key，也写不进去）
@@ -101,6 +121,7 @@ declare
   new_id      uuid;
   result      jsonb;
   item        jsonb;
+  next_sort   int;
 begin
   select value into stored_hash
     from public.app_settings
@@ -191,6 +212,50 @@ begin
      where key = 'unlock_password_hash';
     result := jsonb_build_object('ok', true);
 
+  elsif action = 'create_icon_color' then
+    -- 给图标挂一个颜色版本：payload = { icon_id, name, svg, sort_order? }
+    -- 注意：PostgreSQL 不允许在 INSERT ... VALUES 中写子查询，
+    -- 所以 sort_order 的兜底必须先在变量里算好再插入。
+    if payload ? 'sort_order' and (payload->>'sort_order') is not null then
+      next_sort := (payload->>'sort_order')::int;
+    else
+      select coalesce(max(sort_order), -1) + 1 into next_sort
+        from public.icon_colors
+       where icon_id = (payload->>'icon_id')::uuid;
+    end if;
+
+    insert into public.icon_colors(icon_id, name, svg, sort_order)
+    values (
+      (payload->>'icon_id')::uuid,
+      payload->>'name',
+      payload->>'svg',
+      next_sort
+    )
+    returning id into new_id;
+    result := jsonb_build_object('id', new_id);
+
+  elsif action = 'update_icon_color' then
+    update public.icon_colors
+       set name       = coalesce(payload->>'name', name),
+           svg        = coalesce(payload->>'svg', svg),
+           sort_order = coalesce((payload->>'sort_order')::int, sort_order),
+           updated_at = now()
+     where id = (payload->>'id')::uuid;
+    result := jsonb_build_object('ok', true);
+
+  elsif action = 'delete_icon_color' then
+    delete from public.icon_colors where id = (payload->>'id')::uuid;
+    result := jsonb_build_object('ok', true);
+
+  elsif action = 'reorder_icon_colors' then
+    -- 同一图标内颜色顺序批量调整：payload.items = [{ id, sort_order }, ...]
+    for item in select * from jsonb_array_elements(payload->'items') loop
+      update public.icon_colors
+         set sort_order = coalesce((item->>'sort_order')::int, sort_order)
+       where id = (item->>'id')::uuid;
+    end loop;
+    result := jsonb_build_object('ok', true);
+
   else
     raise exception 'unknown action: %', action using errcode = '22023';
   end if;
@@ -225,5 +290,5 @@ insert into public.categories(name, slug, is_locked, sort_order) values
 on conflict (slug) do nothing;
 
 -- ============================================================
--- 完。执行后到 Table Editor 看 categories / icons / app_settings 是否就位。
+-- 完。执行后到 Table Editor 看 categories / icons / app_settings / icon_colors 是否就位。
 -- ============================================================

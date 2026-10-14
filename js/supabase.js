@@ -4,7 +4,7 @@
 // 通过 window.LOOMICON_DB 调用
 // 方法：
 //   LOOMICON_DB.init()                -> Promise<boolean>  初始化 client
-//   LOOMICON_DB.fetchAll()            -> Promise<{categories, icons}>
+//   LOOMICON_DB.fetchAll()            -> Promise<{categories, icons, iconColors}>
 //   LOOMICON_DB.fetchUnlockHash()     -> Promise<string>
 //   LOOMICON_DB.verifyUnlock(pwd)     -> Promise<boolean>   前端校验解锁密码
 //   LOOMICON_DB.verifyAdmin(pwd)      -> Promise<boolean>   前端校验管理员密码
@@ -63,13 +63,25 @@
   async function fetchAll(force = false) {
     ensure();
     if (!force && cache && Date.now() - cache.ts < CACHE_TTL) return cache;
-    const [{ data: categories, error: e1 }, { data: icons, error: e2 }] = await Promise.all([
+    const [
+      { data: categories, error: e1 },
+      { data: icons, error: e2 },
+      { data: iconColors, error: e3 },
+    ] = await Promise.all([
       client.from('categories').select('*').order('sort_order', { ascending: true }),
       client.from('icons').select('*').order('sort_order', { ascending: true }),
+      // 颜色表可能还没建（旧库未跑迁移），失败时静默降级为空
+      client.from('icon_colors').select('*').order('sort_order', { ascending: true }),
     ]);
     if (e1) throw e1;
     if (e2) throw e2;
-    cache = { categories: categories || [], icons: icons || [], ts: Date.now() };
+    if (e3) console.warn('[LOOMICON_DB] icon_colors 读取失败（可能未执行迁移脚本）：', e3.message);
+    cache = {
+      categories: categories || [],
+      icons: icons || [],
+      iconColors: iconColors || [],
+      ts: Date.now(),
+    };
     return cache;
   }
 
