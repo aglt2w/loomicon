@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=20261014d">
+<link rel="stylesheet" href="css/styles.css?v=20261014e">
 <style>
   /* Logo和Hero标题字体 */
   .logo, .hero h1 {
@@ -216,16 +216,16 @@
           <button class="icon-preview-btn preview-download-btn" id="icon-preview-download-btn" type="button"></button>
           <button class="icon-preview-btn preview-copy-btn" id="icon-preview-copy-btn" type="button"></button>
         </div>
-        <!-- 导出 PNG：倍数可选 1-4x，默认 4x，纯前端 Canvas 实现，无需后台 -->
+        <!-- 导出 PNG：倍数可自定义，默认 6x，纯前端 Canvas 实现，无需后台 -->
         <div class="icon-preview-png" id="icon-preview-png">
-          <div class="png-scale-options" id="png-scale-options">
-            <button class="png-scale-btn" data-scale="1" type="button">1x</button>
-            <button class="png-scale-btn" data-scale="2" type="button">2x</button>
-            <button class="png-scale-btn" data-scale="3" type="button">3x</button>
-            <button class="png-scale-btn active" data-scale="4" type="button">4x</button>
-          </div>
+          <label class="png-scale-field" for="png-scale-input">
+            <input type="number" class="png-scale-input" id="png-scale-input"
+                   value="6" min="1" max="20" step="1" inputmode="numeric">
+            <span class="png-scale-unit">x</span>
+          </label>
           <button class="icon-preview-btn png-download-btn" id="png-download-btn" type="button"><span>下载 PNG</span></button>
         </div>
+        <p class="png-size-hint" id="png-size-hint"></p>
         <p class="icon-preview-tip">以上操作均针对当前选中的颜色版本</p>
       </div>
     </div>
@@ -239,6 +239,6 @@
 <script src="js/config.js?v=20261014c"></script>
 <script src="js/supabase.js?v=20261014c"></script>
 
-<script src="js/script.js?v=20261014d"></script>
+<script src="js/script.js?v=20261014e"></script>
 </body>
 </html>

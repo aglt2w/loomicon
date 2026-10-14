@@ -485,6 +485,8 @@ function applyPreviewColor(colorId) {
       btn.classList.toggle('active', btn.dataset.colorId === previewColorId);
     });
   }
+  // 切换颜色后同步更新导出 PNG 的尺寸提示
+  if (typeof updatePngSizeHint === 'function') updatePngSizeHint();
 }
 
 // 渲染颜色切换控件（没有配置颜色则整体隐藏）
@@ -521,6 +523,7 @@ function openIconPreview(name, svg, category, colorVariants) {
   previewColorId = '';
   previewSvgBox.innerHTML = svg; // 放大展示图标
   renderPreviewColors();
+  if (typeof updatePngSizeHint === 'function') updatePngSizeHint(); // 打开弹窗即显示导出尺寸
   previewModal.style.display = 'block';
   document.body.style.overflow = 'hidden'; // 锁住背景滚动
   setTimeout(() => previewModal.classList.add('show'), 10);
@@ -603,10 +606,14 @@ function bindIconPreview() {
   }
 }
 
-// ========== 导出 PNG（纯前端：SVG -> Canvas -> PNG，倍数 1-4x，默认 4x） ==========
+// ========== 导出 PNG（纯前端：SVG -> Canvas -> PNG） ==========
 const pngDownloadBtn = document.getElementById('png-download-btn');
-const pngScaleBox = document.getElementById('png-scale-options');
-let pngScale = 4; // 当前导出倍数，默认 4x
+const pngScaleInput = document.getElementById('png-scale-input');
+const pngSizeHint = document.getElementById('png-size-hint');
+const PNG_SCALE_DEFAULT = 6;   // 默认倍数
+const PNG_SCALE_MIN = 1;
+const PNG_SCALE_MAX = 20;      // 上限，防止生成超大画布把浏览器撑爆
+const PNG_SCALE_KEY = 'loomIconPngScale'; // 记住用户上次选择的倍数
 
 // 从 SVG 字符串解析出原始宽高（没有显式宽高时按 viewBox，都没有则兜底 512）
 function parseSvgSize(svgText) {
@@ -626,6 +633,28 @@ function parseSvgSize(svgText) {
   return { w, h, svg: svg.outerHTML };
 }
 
+// 读取输入框里的倍数：非法值一律回退到默认值
+function readPngScale() {
+  if (!pngScaleInput) return PNG_SCALE_DEFAULT;
+  let v = parseFloat(pngScaleInput.value);
+  if (!isFinite(v) || v <= 0) v = PNG_SCALE_DEFAULT;
+  v = Math.min(PNG_SCALE_MAX, Math.max(PNG_SCALE_MIN, v));
+  return v;
+}
+
+// 输入框下方的尺寸提示，让用户导出前就知道会得到多大的图
+function updatePngSizeHint() {
+  if (!pngSizeHint) return;
+  const svg = currentPreviewSvg();
+  if (!svg) { pngSizeHint.textContent = ''; return; }
+  const parsed = parseSvgSize(svg);
+  if (!parsed) { pngSizeHint.textContent = ''; return; }
+  const scale = readPngScale();
+  const outW = Math.round(parsed.w * scale);
+  const outH = Math.round(parsed.h * scale);
+  pngSizeHint.textContent = `${Math.round(parsed.w)}×${Math.round(parsed.h)} → ${outW}×${outH}px`;
+}
+
 // 核心导出：把当前选中的颜色 SVG 栅格化成指定倍数的 PNG 并下载
 function exportPng(scale) {
   const svgText = currentPreviewSvg();
@@ -636,6 +665,13 @@ function exportPng(scale) {
     return;
   }
   const { w, h } = parsed;
+  const outW = Math.round(w * scale);
+  const outH = Math.round(h * scale);
+  if (outW < 1 || outH < 1) { showAuthToast('导出尺寸无效，请检查倍数', 'error'); return; }
+  if (outW > 12000 || outH > 12000) {
+    showAuthToast(`导出尺寸过大（${outW}×${outH}px），请把倍数调小`, 'error');
+    return;
+  }
   // 规范化：强制给 SVG 显式 width/height（否则部分浏览器 img 解码会失败）
   const doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
   const svgEl = doc.querySelector('svg');
@@ -647,10 +683,13 @@ function exportPng(scale) {
   const img = new Image();
   img.onload = function() {
     const canvas = document.createElement('canvas');
-    canvas.width = Math.round(w * scale);
-    canvas.height = Math.round(h * scale);
+    canvas.width = outW;
+    canvas.height = outH;
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    // 关掉图像平滑的默认“模糊插值”，让矢量栅格化的边缘更锐利
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, outW, outH);
     URL.revokeObjectURL(url);
     canvas.toBlob(function(pngBlob) {
       if (!pngBlob) { showAuthToast('PNG 生成失败', 'error'); return; }
@@ -662,7 +701,7 @@ function exportPng(scale) {
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(pngUrl), 1000);
-      showAuthToast(`已导出 ${scale}x PNG（${canvas.width}×${canvas.height}px）`);
+      showAuthToast(`已导出 ${scale}x PNG（${outW}×${outH}px）`);
     }, 'image/png');
   };
   img.onerror = function() {
@@ -674,16 +713,28 @@ function exportPng(scale) {
 
 // 绑定导出 PNG 相关事件
 function bindPngExport() {
-  if (!pngDownloadBtn || !pngScaleBox) return;
-  // 倍数切换
-  pngScaleBox.addEventListener('click', function(e) {
-    const btn = e.target.closest('.png-scale-btn');
-    if (!btn) return;
-    pngScale = parseInt(btn.dataset.scale, 10);
-    pngScaleBox.querySelectorAll('.png-scale-btn').forEach(b => b.classList.toggle('active', b === btn));
+  if (!pngDownloadBtn || !pngScaleInput) return;
+
+  // 回填上次用过的倍数（没有则用默认 6x）
+  const saved = parseFloat(localStorage.getItem(PNG_SCALE_KEY));
+  pngScaleInput.value = isFinite(saved) && saved > 0 ? saved : PNG_SCALE_DEFAULT;
+
+  // 输入时即时更新尺寸提示（失焦时才纠正非法值，避免打断输入）
+  pngScaleInput.addEventListener('input', updatePngSizeHint);
+  pngScaleInput.addEventListener('change', function() {
+    const v = readPngScale();
+    pngScaleInput.value = v;
+    localStorage.setItem(PNG_SCALE_KEY, String(v));
+    updatePngSizeHint();
   });
+
   // 下载 PNG
-  pngDownloadBtn.addEventListener('click', function() { exportPng(pngScale); });
+  pngDownloadBtn.addEventListener('click', function() {
+    const scale = readPngScale();
+    pngScaleInput.value = scale; // 顺手纠正输入框显示
+    localStorage.setItem(PNG_SCALE_KEY, String(scale));
+    exportPng(scale);
+  });
 }
 
 // ========== 分类筛选（保留逻辑） ==========
