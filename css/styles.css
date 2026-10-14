@@ -1490,6 +1490,22 @@ body.auth-ok [data-cat="OMC表情"] { /* 修正4 */
 .icon-preview-color .cname { white-space: nowrap; }
 
 /* 操作按钮：下载/复制 */
+/* 两行操作区统一宽度，右边缘互相对齐，右侧自然留白（不撑满信息区） */
+.icon-preview-actions,
+.icon-preview-png {
+  width: var(--preview-actions-w, 260px);
+  max-width: 100%;
+  box-sizing: border-box;
+}
+/* PNG 行用双列网格，第二列自动占满，确保右缘与第一行完全一致 */
+.icon-preview-png {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px; /* 与上方「下载 SVG / 复制 SVG」一行拉开距离 */
+}
+
 .icon-preview-actions {
   display: flex;
   gap: 12px;
@@ -1544,15 +1560,6 @@ body.auth-ok [data-cat="OMC表情"] { /* 修正4 */
   line-height: 1.6;
 }
 
-/* 导出 PNG 区块：自定义倍数输入框 + 下载按钮，同一行 */
-.icon-preview-png {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: nowrap;
-  width: 100%;
-  margin-top: 8px; /* 与上方「下载 SVG / 复制 SVG」一行拉开距离 */
-}
 .png-scale-field {
   display: inline-flex;
   align-items: center;
@@ -1599,7 +1606,6 @@ body.auth-ok [data-cat="OMC表情"] { /* 修正4 */
 }
 .png-download-btn {
   flex: 1;
-  min-width: 110px;
   justify-content: center;
   background-color: #1f2937;
   color: #fff;
