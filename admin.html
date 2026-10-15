@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=20261014b">
-<link rel="stylesheet" href="css/admin.css?v=20261014b">
+<link rel="stylesheet" href="css/styles.css?v=20261015a">
+<link rel="stylesheet" href="css/admin.css?v=20261015b">
 <style>
   body.admin-page { padding: 0; }
 </style>
@@ -49,9 +49,11 @@
   <header class="admin-top">
     <div class="admin-top-left">
       <span class="admin-logo">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-          <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"></path>
-        </svg>
+        <span class="admin-logo-chip">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"></path>
+          </svg>
+        </span>
         LOOM ICON · 后台
       </span>
       <a class="admin-go-public" href="./index.html" target="_blank">
@@ -68,6 +70,7 @@
   <div class="admin-body">
     <!-- 侧栏 -->
     <aside class="admin-side">
+      <p class="admin-side-label">管理菜单</p>
       <nav class="admin-nav">
         <button class="admin-nav-item active" data-view="icons">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 1.1 2 2 2 2v3h2c1.1 0 2 .9 2 2v2.93z"></path></svg>
@@ -201,14 +204,19 @@
             <p>修改管理员密码 / 解锁密码</p>
           </div>
         </div>
-        <div class="admin-card admin-settings-card">
-          <h3>修改后台管理员密码</h3>
-          <input type="password" class="admin-input" id="new-admin-pwd" placeholder="新管理员密码" autocomplete="new-password" name="loomicon-new-admin-pwd">
-          <button class="admin-btn admin-btn-primary" id="btn-change-admin">修改</button>
-          <hr>
-          <h3>修改公开端解锁密码</h3>
-          <input type="password" class="admin-input" id="new-unlock-pwd" placeholder="新解锁密码" autocomplete="new-password" name="loomicon-new-unlock-pwd">
-          <button class="admin-btn admin-btn-primary" id="btn-change-unlock">修改</button>
+        <div class="admin-settings-grid">
+          <div class="admin-card admin-settings-card">
+            <h3>后台管理员密码</h3>
+            <p class="settings-desc">用于进入本后台（admin.html）</p>
+            <input type="password" class="admin-input" id="new-admin-pwd" placeholder="新管理员密码" autocomplete="new-password" name="loomicon-new-admin-pwd">
+            <button class="admin-btn admin-btn-primary" id="btn-change-admin">修改管理员密码</button>
+          </div>
+          <div class="admin-card admin-settings-card">
+            <h3>公开端解锁密码</h3>
+            <p class="settings-desc">用于公开站查看上锁分类（如 LOGO、OMC 表情）</p>
+            <input type="password" class="admin-input" id="new-unlock-pwd" placeholder="新解锁密码" autocomplete="new-password" name="loomicon-new-unlock-pwd">
+            <button class="admin-btn admin-btn-primary" id="btn-change-unlock">修改解锁密码</button>
+          </div>
         </div>
       </section>
 
@@ -297,8 +305,8 @@
 <!-- Toast -->
 <div class="admin-toast-host" id="admin-toast-host"></div>
 
-<script src="js/config.js?v=20261014b"></script>
-<script src="js/supabase.js?v=20261014b"></script>
-<script src="js/admin.js?v=20261014b"></script>
+<script src="js/config.js?v=20261015a"></script>
+<script src="js/supabase.js?v=20261015a"></script>
+<script src="js/admin.js?v=20261015a"></script>
 </body>
 </html>
