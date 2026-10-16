@@ -1012,26 +1012,25 @@ body.auth-ok [data-cat="OMC表情"] { /* 修正4 */
     padding: 2px;
   }
 
-  /* 标题横幅 */
+  /* 标题横幅：不用 scale hack，让胶囊按内容自适应宽并居中，避免文字被裁 */
   .title-banner {
-    width: 68%;
+    width: 100%;
     margin: 0 auto 16px;
     overflow: visible;
     position: relative;
   }
   .banner-right-wrap {
-    height: 36px;
-    width: 100%;
-    transform: scale(0.7);
-    transform-origin: left center;
-    width: auto;
-    min-width: 100%;
+    height: 32px;
+    width: max-content;
+    max-width: 100%;
+    margin: 0 auto;
+    padding-right: 14px;
   }
   .banner-left {
-    font-size: 12px;
+    font-size: 11px;
     padding: 0 10px;
-    height: 28px;
-    line-height: 28px;
+    height: 24px;
+    line-height: 24px;
     left: 4px;
     top: 4px;
     bottom: 4px;
@@ -1039,9 +1038,9 @@ body.auth-ok [data-cat="OMC表情"] { /* 修正4 */
     z-index: 2;
   }
   .banner-right {
-    font-size: 12px;
-    line-height: 36px;
-    padding-left: calc(70px + 4px + 10px);
+    font-size: 11px;
+    line-height: 32px;
+    padding-left: 88px;
     white-space: nowrap;
     overflow: visible;
     text-overflow: clip;
@@ -1068,17 +1067,22 @@ body.auth-ok [data-cat="OMC表情"] { /* 修正4 */
     padding: 0 1rem;
     margin-bottom: 1.5rem;
   }
+  /* 特性：三个强制一排，缩小字号与间距 */
   .features {
-    gap: 1.5rem;
+    gap: 0.9rem;
     padding: 0 1rem;
+    flex-wrap: nowrap;
   }
   .feature-item {
-    font-size: 0.9rem;
-    gap: 0.5rem;
+    font-size: 12px;
+    gap: 5px;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   .feature-item svg {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
   }
 
   /* 搜索区域 */
@@ -1088,31 +1092,54 @@ body.auth-ok [data-cat="OMC表情"] { /* 修正4 */
     top: 12px;
   }
   .search-container {
-    height: 60px;
-    justify-content: center;
+    height: 56px;
+    justify-content: flex-start;
   }
+  /* 手机端保留分类选择器：压缩宽度塞进搜索框左侧 */
   .custom-select-wrapper {
-    display: none;
-    width: 120px;
-    padding: 0 12px;
+    display: block;
+    width: 106px;
+    min-width: 106px;
+    padding: 0 10px;
+    flex-shrink: 0;
   }
   .custom-select-btn {
-    font-size: 14px;
+    font-size: 13px;
+    gap: 4px;
+  }
+  .custom-select-btn .select-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+  .selected-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .search-input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
     font-size: 14px;
-    padding: 0 20px;
-    width: 100%;
+    padding: 0 12px;
   }
   .search-icon {
-    margin: 0 16px;
+    margin: 0 12px;
     width: 20px;
     height: 20px;
   }
   .select-option {
-    height: 60px;
-    line-height: 60px;
-    font-size: 14px;
+    height: 48px;
+    line-height: 48px;
+    font-size: 13px;
+  }
+  /* 下拉列表：不受 JS 内联 width 限制过窄，保证文字完整；底色加实防透字 */
+  .custom-select-list {
+    min-width: 160px;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(26px) saturate(1.8);
+    -webkit-backdrop-filter: blur(26px) saturate(1.8);
   }
   .select-option[data-cat="全部图标"] .option-icon {
     display: block;
